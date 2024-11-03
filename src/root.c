@@ -8,60 +8,57 @@ void builderDone(int sig) {
     // Διαχείριση σήματος USR2
 }
 
-int countLines(const char *filename) {
-    int fd = open(filename, O_RDONLY);
+// Function that save startDescriptor for each splitter in an array
+int *saveStartDescriptors(int numOfSplitter, char *textFile) {
+    // Open text file using file descriptor
+    int fd = open(textFile, O_RDONLY);
     if (fd == -1) {
-        printf("filename: %s\n", filename);
         perror("open");
         exit(EXIT_FAILURE);
     }
+
+    // Count lines of text file using file descriptor
     int lines = 0;
-    char ch;
-    while (read(fd, &ch, 1) == 1) {
-        if (ch == '\n') {
+    char c;
+    while (read(fd, &c, 1) > 0) {
+        if (c == '\n') {
             lines++;
         }
     }
-    close(fd);
-    return lines;
-}
 
-void splitFile(const char *filename, int numOfSplitter) {
-    int fd = open(filename, O_RDONLY);
-    if (fd == -1) {
-        printf("Το αρχείο %s δεν υπάρχει\n", filename);
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
+    // Calculate lines per splitter
+    int linesPerSplitter = lines / numOfSplitter;
+    int remainingLines = lines % numOfSplitter;
 
-    int totalLines = countLines(filename);
-    int linesPerSplitter = totalLines / numOfSplitter;
-    int remainingLines = totalLines % numOfSplitter;
+    int *startDescriptors = (int *)malloc(numOfSplitter * sizeof(int));
 
-    char line[1024];
+    // Save startDescriptor for each splitter
+    int characterCount = 0;
+    int lineCount = 0;
+    lseek(fd, 0, SEEK_SET);
     for (int i = 0; i < numOfSplitter; i++) {
-        char splitterFilename[256];
-        snprintf(splitterFilename, sizeof(splitterFilename), "split_files/splitter_%d.txt", i);
-        int splitterFd = open(splitterFilename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        if (splitterFd == -1) {
-            perror("open");
-            exit(EXIT_FAILURE);
-        }
-
-        int linesToWrite = linesPerSplitter + (i < remainingLines ? 1 : 0);
-        for (int j = 0; j < linesToWrite; j++) {
-            ssize_t bytesRead;
-            int lineLength = 0;
-            while ((bytesRead = read(fd, &line[lineLength], 1)) > 0 && line[lineLength] != '\n') {
-                lineLength++;
+        startDescriptors[i] = characterCount;
+        for (int j = 0; j < linesPerSplitter + (i < remainingLines ? 1 : 0); j++) {
+            while (read(fd, &c, 1) > 0) {
+                characterCount++;
+                if (c == '\n') {
+                    lineCount++;
+                    break;
+                }
             }
-            line[lineLength] = '\n';
-            write(splitterFd, line, lineLength + 1);
         }
-        close(splitterFd);
     }
+
+    // print startDescriptors
+    for (int i = 0; i < numOfSplitter; i++) {
+        printf("startDescriptors[%d] = %d\n", i, startDescriptors[i]);
+    }
+
     close(fd);
+    return startDescriptors;
 }
+
+
 
 int main(int argc, char *argv[]) {
     ////////////////////////////
@@ -115,15 +112,11 @@ int main(int argc, char *argv[]) {
     signal(SIGUSR2, builderDone);
 
     ///////////////////////////
-    ///// File splitting //////
-    ///////////////////////////
-
-
-    splitFile(textFile, numOfSplitter);
-
-    ///////////////////////////
     ///// Process creation ////
     ///////////////////////////
+
+    // Calculate startDescriptor for each splitter
+    int *startDescriptors = saveStartDescriptors(numOfSplitter, textFile);
 
     // Create splitter processes
     for (int i = 0; i < numOfSplitter; i++) {
@@ -132,31 +125,42 @@ int main(int argc, char *argv[]) {
             perror("fork");
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
-            char splitterFilename[256];
-            snprintf(splitterFilename, sizeof(splitterFilename), "splitter_%d.txt", i);
+            // Calculate start and end line for each splitter
+            int startDesc = startDescriptors[i];
+            int endDesc = (i == numOfSplitter - 1) ? -1 : startDescriptors[i + 1];
 
-            execl("./splitter", "./splitter", splitterFilename, exclusionList, NULL);
+            char startDescStr[10];
+            char endDescStr[10];
+            sprintf(startDescStr, "%d", startDesc);
+            sprintf(endDescStr, "%d", endDesc);
+
+            execl("./splitter", "splitter", textFile, exclusionList, startDescStr, endDescStr, (char *)NULL);
             perror("execl");
             exit(EXIT_FAILURE);
         }
     }
 
-    // // Create builder processes
-    // for (int i = 0; i < numOfBuilders; i++) {
-    //     pid_t pid = fork();
-    //     if (pid < 0) {
-    //         perror("fork");
-    //         exit(EXIT_FAILURE);
-    //     } else if (pid == 0) {
-    //         // Εκτέλεση του προγράμματος builder
-    //         execl("./builder", "builder", (char *)NULL);
-    //         perror("execl");
-    //         exit(EXIT_FAILURE);
-    //     }
-    // }
+    // Create builder processes
+    for (int i = 0; i < numOfBuilders; i++) {
+        pid_t pid = fork();
+        if (pid < 0) {
+            perror("fork");
+            exit(EXIT_FAILURE);
+        } else if (pid == 0) {
+            execl("./builder", "builder", (char *)NULL);
+            perror("execl");
+            exit(EXIT_FAILURE);
+        }
+    }
 
-    wait(NULL);
-        
+    ///////////////////////////
+    ///// Waiting for child ///
+    ///////////////////////////
+
+    int status;
+    for (int i = 0; i < numOfSplitter + numOfBuilders; i++) {
+        wait(&status);
+    }
 
     return 0;
 }
