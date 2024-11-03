@@ -33,14 +33,15 @@ int main(int argc, char *argv[]) {
     // Move file descriptor to start line using file descriptor startLine
     lseek(fd, startDesc, SEEK_SET);
 
-    // print lines from startDesc to endDesc
+    // print the lines from startDesc to endDesc
     char c;
     while (read(fd, &c, 1) > 0) {
-        if (endDesc != -1 && lseek(fd, 0, SEEK_CUR) > endDesc) {
+        if (endDesc != -1 && lseek(fd, 0, SEEK_CUR) >= endDesc) {
             break;
         }
         write(STDOUT_FILENO, &c, 1);
     }
+
 
     // Close file descriptors
     close(fd);
