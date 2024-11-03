@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <getopt.h>
+#include <fcntl.h>
 
 // Δηλώσεις κοινών συναρτήσεων
 
