@@ -10,7 +10,6 @@ void builderDone(int sig) {
 
 // Function that save startDescriptor for each splitter in an array
 int *saveStartDescriptors(int numOfSplitter, char *textFile) {
-    // Open text file using file descriptor
     int fd = open(textFile, O_RDONLY);
     if (fd == -1) {
         perror("open");
@@ -20,21 +19,17 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
     // Count lines of text file using file descriptor
     int lines = 0;
     char c;
-    while (read(fd, &c, 1) > 0) {
-        if (c == '\n') {
+    while (read(fd, &c, 1) > 0)
+        if (c == '\n')
             lines++;
-        }
-    }
 
-    // Calculate lines per splitter
+    // Lines per splitter
     int linesPerSplitter = lines / numOfSplitter;
     int remainingLines = lines % numOfSplitter;
 
-    int *startDescriptors = (int *)malloc(numOfSplitter * sizeof(int));
-
-    // Save startDescriptor for each splitter
-    int characterCount = 0;
-    int lineCount = 0;
+    int *startDescriptors = (int *)malloc(numOfSplitter * sizeof(int)); // Array to save startDescriptor for each splitter
+    int characterCount = 0; // Count characters read
+    int lineCount = 0;    // Count lines read
     lseek(fd, 0, SEEK_SET);
     for (int i = 0; i < numOfSplitter; i++) {
         startDescriptors[i] = characterCount;
@@ -48,12 +43,6 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
             }
         }
     }
-
-    // print startDescriptors
-    for (int i = 0; i < numOfSplitter; i++) {
-        printf("startDescriptors[%d] = %d\n", i, startDescriptors[i]);
-    }
-
     close(fd);
     return startDescriptors;
 }
@@ -98,7 +87,7 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE);
         }
     }
-
+    
     if (textFile == NULL || numOfSplitter <= 0 || numOfBuilders <= 0 || topPopular <= 0 || exclusionList == NULL || outputFile == NULL) {
         fprintf(stderr, "Usage: %s -t textFile -s numOfSplitter -b numOfBuilders -p topPopular -e exclusionList -o outputFile\n", argv[0]);
         exit(EXIT_FAILURE);
