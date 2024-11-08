@@ -17,11 +17,12 @@ int main(int argc, char *argv[]) {
     }
 
     // Open text file using file descriptor
-    int fd = open(textFile, O_RDONLY);
+   int fd = open(textFile, O_RDONLY);
     if (fd == -1) {
         perror("open");
         exit(EXIT_FAILURE);
     }
+
 
     // Open exclusion list file using file descriptor
     int exclusionFd = open(exclusionList, O_RDONLY);
