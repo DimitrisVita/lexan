@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
                 close(pipes[j][0]);
             }
 
-            execl("./splitter", "splitter", textFile, exclusionList, startDescStr, endDescStr, (char *)NULL);
+            execl("./splitter", "splitter", textFile, exclusionList, startDescStr, endDescStr, numOfBuilders, (char *)NULL);
             perror("execl");
             exit(EXIT_FAILURE);
         }

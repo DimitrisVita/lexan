@@ -1,4 +1,5 @@
 #include "common.h"
+#include "ADTMap.h"
 #include <time.h>
 
 int main(int argc, char *argv[]) {
@@ -6,7 +7,7 @@ int main(int argc, char *argv[]) {
 
     // Create a dynamic structure to store words and their counts
     // For simplicity, using a map-like structure (e.g., hash table)
-    Map wordCountMap = createMap();
+    Map wordCountMap = createMap(1000);
 
     char word[128];
     while (read(STDIN_FILENO, word, sizeof(word)) > 0) {
