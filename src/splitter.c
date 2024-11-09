@@ -1,6 +1,15 @@
 #include "common.h"
 #include "ADTSet.h"
 
+// Hash function for sending words to the correct builder process
+int hash(char *word, int numBuilders) {
+    int sum = 0;
+    for (int i = 0; word[i] != '\0'; i++) {
+        sum += word[i];
+    }
+    return sum % numBuilders;
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 5) {
         fprintf(stderr, "Usage: %s textFile exclusionList startDesc endDesc\n", argv[0]);
@@ -17,6 +26,10 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    //////////////////////////
+    ////// EXLUSION LIST /////
+    //////////////////////////
+
     // Open exclusion list file using file descriptor
     char exclusionPath[128];
     sprintf(exclusionPath, "./%s", exclusionList);
@@ -27,7 +40,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Create a set to store the exclusion list
-    Set exclusionSet = createSet(100);
+    Set exclusionSet = createSet(1000);
 
     // Read the exclusion list file and add each line to the set
     char c;
@@ -38,40 +51,47 @@ int main(int argc, char *argv[]) {
             line[i] = '\0';
             addElement(exclusionSet, line);
             i = 0;
-        } else {
+        } else
             line[i++] = c;
+    }
+
+    //////////////////////////
+    ////// TEXT FILE /////////
+    //////////////////////////
+
+    // Open text file using file descriptor
+    char path[128];
+    sprintf(path, "./%s", textFile); // Ensure the path is correct
+    int textFd = open(path, O_RDONLY);
+    if (textFd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    // Move file descriptor to start line using file descriptor startLine
+    lseek(textFd, startDesc, SEEK_SET);
+
+    // Read every word from the text file, check if it is in the exclusion list, and send it to a specific builder process
+    char word[128];
+    int wordIndex = 0;
+    while (read(textFd, &c, 1) > 0) {
+        if (isalpha(c)) {
+            word[wordIndex++] = tolower(c);
+        } else if (wordIndex > 0) {
+            word[wordIndex] = '\0';
+            if (!containsElement(exclusionSet, word)) {
+                int builderIndex = hash(word, numBuilders);
+                write(pipes[builderIndex][1], word, strlen(word) + 1);
+            }
+            wordIndex = 0;
+        }
+        if (endDesc != -1 && lseek(textFd, 0, SEEK_CUR) > endDesc) {
+            break;
         }
     }
 
-    // Check if set contains a specific element
-    printf("Contains element: %d\n", containsElement(exclusionSet, "b"));
-
-
-
-    // // Open text file using file descriptor
-    // char path[128];
-    // sprintf(path, "./%s", textFile); // Ensure the path is correct
-    // int textFd = open(path, O_RDONLY);
-    // if (textFd == -1) {
-    //     perror("open");
-    //     exit(EXIT_FAILURE);
-    // }
-
-
-    // // Move file descriptor to start line using file descriptor startLine
-    // lseek(textFd, startDesc, SEEK_SET);
-
-    // // print lines from startDesc to endDesc
-    // char c;
-    // while (read(textFd, &c, 1) > 0) {
-    //     if (endDesc != -1 && lseek(textFd, 0, SEEK_CUR) > endDesc) {
-    //         break;
-    //     }
-    //     write(STDOUT_FILENO, &c, 1);
-    // }
-
     // Close file descriptors
-    // close(textFd);
+    close(textFd);
     close(exclusionFd);
 
     // Αποστολή σήματος USR1 στον root

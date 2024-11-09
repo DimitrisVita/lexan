@@ -11,4 +11,10 @@
 
 // Δηλώσεις κοινών συναρτήσεων
 
+// Function declarations
+Map createMap();
+void incrementWordCount(Map map, char *word);
+void sendResultsToRoot(Map map);
+void sendTimeToRoot(double time_spent);
+
 #endif // COMMON_H

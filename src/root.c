@@ -160,7 +160,6 @@ int main(int argc, char *argv[]) {
             }
             dup2(pipes[i][0], STDIN_FILENO); // Redirect input from pipe
             close(pipes[i][0]);
-
             execl("./builder", "builder", (char *)NULL);
             perror("execl");
             exit(EXIT_FAILURE);
