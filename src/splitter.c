@@ -1,4 +1,5 @@
 #include "common.h"
+#include "ADTSet.h"
 
 int main(int argc, char *argv[]) {
     if (argc != 5) {
@@ -16,35 +17,61 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Open text file using file descriptor
-   int fd = open(textFile, O_RDONLY);
-    if (fd == -1) {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
-
-
     // Open exclusion list file using file descriptor
-    int exclusionFd = open(exclusionList, O_RDONLY);
+    char exclusionPath[128];
+    sprintf(exclusionPath, "./%s", exclusionList);
+    int exclusionFd = open(exclusionPath, O_RDONLY);
     if (exclusionFd == -1) {
         perror("open");
         exit(EXIT_FAILURE);
     }
 
-    // Move file descriptor to start line using file descriptor startLine
-    lseek(fd, startDesc, SEEK_SET);
+    // Create a set to store the exclusion list
+    Set exclusionSet = createSet(100);
 
-    // print lines from startDesc to endDesc
+    // Read the exclusion list file and add each line to the set
     char c;
-    while (read(fd, &c, 1) > 0) {
-        if (endDesc != -1 && lseek(fd, 0, SEEK_CUR) > endDesc) {
-            break;
+    char line[128];
+    int i = 0;
+    while (read(exclusionFd, &c, 1) > 0) {
+        if (c == '\n') {
+            line[i] = '\0';
+            addElement(exclusionSet, line);
+            i = 0;
+        } else {
+            line[i++] = c;
         }
-        write(STDOUT_FILENO, &c, 1);
     }
 
+    // Check if set contains a specific element
+    printf("Contains element: %d\n", containsElement(exclusionSet, "b"));
+
+
+
+    // // Open text file using file descriptor
+    // char path[128];
+    // sprintf(path, "./%s", textFile); // Ensure the path is correct
+    // int textFd = open(path, O_RDONLY);
+    // if (textFd == -1) {
+    //     perror("open");
+    //     exit(EXIT_FAILURE);
+    // }
+
+
+    // // Move file descriptor to start line using file descriptor startLine
+    // lseek(textFd, startDesc, SEEK_SET);
+
+    // // print lines from startDesc to endDesc
+    // char c;
+    // while (read(textFd, &c, 1) > 0) {
+    //     if (endDesc != -1 && lseek(textFd, 0, SEEK_CUR) > endDesc) {
+    //         break;
+    //     }
+    //     write(STDOUT_FILENO, &c, 1);
+    // }
+
     // Close file descriptors
-    close(fd);
+    // close(textFd);
     close(exclusionFd);
 
     // Αποστολή σήματος USR1 στον root
