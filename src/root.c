@@ -128,18 +128,31 @@ int main(int argc, char *argv[]) {
             // Calculate start and end line for each splitter
             int startDesc = startDescriptors[i];
             int endDesc = (i == numOfSplitter - 1) ? -1 : startDescriptors[i + 1];
-
             char startDescStr[10];
             char endDescStr[10];
+            char numOfBuildersStr[10];
             sprintf(startDescStr, "%d", startDesc);
             sprintf(endDescStr, "%d", endDesc);
+            sprintf(numOfBuildersStr, "%d", numOfBuilders);
 
             // Close read ends of pipes in splitter
             for (int j = 0; j < numOfBuilders; j++) {
                 close(pipes[j][0]);
             }
 
-            execl("./splitter", "splitter", textFile, exclusionList, startDescStr, endDescStr, numOfBuilders, (char *)NULL);
+            // Concatenate pipe file descriptors into a single string
+            char pipeDescriptors[1024] = ""; // Ensure this buffer is large enough to hold all descriptors
+            for (int j = 0; j < numOfBuilders; j++) {
+                char pipeStr[10];
+                sprintf(pipeStr, "%d", pipes[j][1]);
+                strcat(pipeDescriptors, pipeStr);
+                if (j < numOfBuilders - 1) {
+                    strcat(pipeDescriptors, ",");
+                }
+            }
+
+            // Create argument list for execl
+            execl("./splitter", "splitter", textFile, exclusionList, startDescStr, endDescStr, numOfBuildersStr, pipeDescriptors, (char *)NULL);
             perror("execl");
             exit(EXIT_FAILURE);
         }

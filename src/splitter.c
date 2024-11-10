@@ -11,8 +11,8 @@ int hash(char *word, int numBuilders) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s textFile exclusionList startDesc endDesc numOfBuilders\n", argv[0]);
+    if (argc != 7) {
+        fprintf(stderr, "Usage: %s textFile exclusionList startDesc endDesc numOfBuilders pipeDescriptors\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -21,9 +21,13 @@ int main(int argc, char *argv[]) {
     int startDesc = atoi(argv[3]);
     int endDesc = atoi(argv[4]);
     int numOfBuilders = atoi(argv[5]);
+    char *pipeDescriptors = argv[6];
+
+    // Print pipe descriptors
+    printf("Pipe descriptors: %s\n", pipeDescriptors);
 
     if (startDesc < 0 || endDesc < -1) {
-        fprintf(stderr, "Usage: %s textFile exclusionList startDesc endDesc numOfBuilders\n", argv[0]);
+        fprintf(stderr, "Usage: %s textFile exclusionList startDesc endDesc numOfBuilders pipeDescriptors\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -82,7 +86,7 @@ int main(int argc, char *argv[]) {
             word[wordIndex] = '\0';
             if (!containsElement(exclusionSet, word)) {
                 int builderIndex = hash(word, numOfBuilders);
-                write(pipes[builderIndex][1], word, strlen(word) + 1);
+                // write(pipes[builderIndex][1], word, strlen(word) + 1);
             }
             wordIndex = 0;
         }

@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "common.h": "c",
-        "adtset.h": "c"
+        "adtset.h": "c",
+        "unistd.h": "c"
     }
 }

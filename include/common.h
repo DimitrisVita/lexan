@@ -9,6 +9,7 @@
 #include <getopt.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <string.h>
 
 
 void sendTimeToRoot(double time_spent);
