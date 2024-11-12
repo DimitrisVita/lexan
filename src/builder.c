@@ -3,28 +3,37 @@
 #include <time.h>
 
 int main(int argc, char *argv[]) {
-    clock_t start = clock();
 
-    // // Create a dynamic structure to store words and their counts
-    // // For simplicity, using a map-like structure (e.g., hash table)
-    // Map wordCountMap = createMap(1000);
+    // Read words from stdin using read() and count their occurrences
+    Map map = createMap(1000);
+    char word[128];
+    int wordIndex = 0;
+    char c;
+    while (read(STDIN_FILENO, &c, 1) > 0) {
+        // add word to map
+        if (isalpha(c)) {
+            word[wordIndex++] = tolower(c);
+        } else if (wordIndex > 0) {
+            word[wordIndex] = '\0';
+            char *value = getMapValue(map, word);
+            if (value == NULL) {
+                addMapNode(map, word, "1");
+            } else {
+                int count = atoi(value);
+                count++;
+                char countStr[10];
+                sprintf(countStr, "%d", count);
+                addMapNode(map, word, countStr);
+            }
+            wordIndex = 0;
+        }
+    }
 
-    // char word[128];
-    // while (read(STDIN_FILENO, word, sizeof(word)) > 0) {
-    //     incrementWordCount(wordCountMap, word);
-    // }
 
-    // // Send results back to the root process
-    // sendResultsToRoot(wordCountMap);
 
-    // clock_t end = clock();
-    // double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
+    close(STDIN_FILENO);
 
-    // // Send execution time to the root process
-    // sendTimeToRoot(time_spent);
-
-    // Αποστολή σήματος USR2 στον root
+    // Send signal USR2 to root
     kill(getppid(), SIGUSR2);
-
     return 0;
 }

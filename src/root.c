@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Calculate startDescriptor for each splitter
-    int *startDescriptors = saveStartDescriptors(numOfSplitter, textFile);
+    int *startDescriptors = saveStartDescriptors(numOfSplitter, textFile);    
 
     // Create splitter processes
     for (int i = 0; i < numOfSplitter; i++) {
@@ -167,10 +167,9 @@ int main(int argc, char *argv[]) {
         } else if (pid == 0) {
             // Close write ends of pipes in builder
             for (int j = 0; j < numOfBuilders; j++) {
-                if (i != j) {
-                    close(pipes[j][1]);
-                }
+                close(pipes[j][1]);
             }
+            
             dup2(pipes[i][0], STDIN_FILENO); // Redirect input from pipe
             close(pipes[i][0]);
             execl("./builder", "builder", (char *)NULL);
@@ -178,6 +177,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         } else {
             close(pipes[i][0]); // Close read end in parent
+            close(pipes[i][1]); // Close write end in parent
         }
     }
 

@@ -23,12 +23,18 @@ int main(int argc, char *argv[]) {
     int numOfBuilders = atoi(argv[5]);
     char *pipeDescriptors = argv[6];
 
-    // Print pipe descriptors
-    printf("Pipe descriptors: %s\n", pipeDescriptors);
-
     if (startDesc < 0 || endDesc < -1) {
         fprintf(stderr, "Usage: %s textFile exclusionList startDesc endDesc numOfBuilders pipeDescriptors\n", argv[0]);
         exit(EXIT_FAILURE);
+    }
+
+    // put pipe descriptors into an array
+    char *pipeDescriptorsCopy = strdup(pipeDescriptors);
+    char *pipeDescriptor;
+    int pipes[numOfBuilders];
+    int i = 0;
+    while ((pipeDescriptor = strsep(&pipeDescriptorsCopy, ",")) != NULL) {
+        pipes[i++] = atoi(pipeDescriptor);
     }
 
     //////////////////////////
@@ -50,7 +56,7 @@ int main(int argc, char *argv[]) {
     // Read the exclusion list file and add each line to the set
     char c;
     char line[128];
-    int i = 0;
+    i = 0;
     while (read(exclusionFd, &c, 1) > 0) {
         if (c == '\n') {
             line[i] = '\0';
@@ -86,7 +92,7 @@ int main(int argc, char *argv[]) {
             word[wordIndex] = '\0';
             if (!containsElement(exclusionSet, word)) {
                 int builderIndex = hash(word, numOfBuilders);
-                // write(pipes[builderIndex][1], word, strlen(word) + 1);
+                write(pipes[builderIndex], word, strlen(word) + 1);
             }
             wordIndex = 0;
         }
@@ -94,6 +100,14 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+
+    // close pipe descriptors
+    for (int i = 0; i < numOfBuilders; i++) {
+        close(pipes[i]);
+    }
+
+    // Free the exclusion set
+    freeSet(exclusionSet);
 
     // Close file descriptors
     close(textFd);
