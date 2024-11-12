@@ -11,7 +11,13 @@
 #include <ctype.h>
 #include <string.h>
 
+typedef struct {
+    char *word;
+    int count;
+} Word;
 
 void sendTimeToRoot(double time_spent);
+
+
 
 #endif // COMMON_H
