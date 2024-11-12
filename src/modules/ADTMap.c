@@ -33,6 +33,11 @@ void *getMapValue(Map map, char *key) {
     return getHashNode(map->hashtable, key);
 }
 
+// Get the size of the map
+int getMapSize(Map map) {
+    return getHashtableSize(map->hashtable);
+}
+
 // Free the map
 void freeMap(Map map) {
     freeHashtable(map->hashtable);

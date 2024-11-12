@@ -34,5 +34,14 @@ void deleteHashNode(Hashtable hashtable, char *key);
 // Get the value given a key
 void *getHashNode(Hashtable hashtable, char *key);
 
+// Get the size of the hashtable
+int getHashtableSize(Hashtable hashtable);
+
+// Get first not null node
+HashNode getFirstNode(Hashtable hashtable);
+
+// Get next not null node
+HashNode getNextNode(Hashtable hashtable, HashNode node);
+
 // Free the hashtable
 void freeHashtable(Hashtable hashtable);

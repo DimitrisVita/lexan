@@ -17,5 +17,11 @@ void deleteMapNode(Map map, char *key);
 // Get the value given a key
 void *getMapValue(Map map, char *key);
 
+// Get the size of the map
+int getMapSize(Map map);
+
+// Get first not null node
+
+
 // Free the map
 void freeMap(Map map);

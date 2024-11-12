@@ -98,6 +98,31 @@ void *getHashNode(Hashtable hashtable, char *key) {
     return NULL;    // key not found
 }
 
+// Get the size of the hashtable
+int getHashtableSize(Hashtable hashtable) {
+    return hashtable->count;
+}
+
+// Get first not null node
+HashNode getFirstNode(Hashtable hashtable) {
+    for (int i = 0; i < hashtable->size; i++) {
+        if (hashtable->array[i] != NULL)
+            return hashtable->array[i];
+    }
+    return NULL;
+}
+
+// Get next not null node
+HashNode getNextNode(Hashtable hashtable, HashNode node) {
+    if (node->next != NULL)
+        return node->next;
+    for (int i = hashFunction(node->key, hashtable->size) + 1; i < hashtable->size; i++) {
+        if (hashtable->array[i] != NULL)
+            return hashtable->array[i];
+    }
+    return NULL;
+}
+
 // Free the hashtable
 void freeHashtable(Hashtable hashtable) {
     for (int i = 0; i < hashtable->size; i++) {
