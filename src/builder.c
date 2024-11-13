@@ -34,13 +34,9 @@ int main(int argc, char *argv[]) {
         char *key = node->key;
         char *value = node->value;
         // Combine key and value as a string
-        char *result = (char *) malloc(strlen(key) + strlen(value) + 2);
-        strcpy(result, key);
-        strcat(result, " ");
-        strcat(result, value);
-
-        printf("%s\n", result);
-
+        char result[256];
+        snprintf(result, sizeof(result), "%s %s", key, value);
+        write(STDOUT_FILENO, result, strlen(result));   
     }
 
     close(STDIN_FILENO);

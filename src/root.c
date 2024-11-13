@@ -106,10 +106,19 @@ int main(int argc, char *argv[]) {
     ///// Process creation ////
     ///////////////////////////
 
-    // Create pipes
-    int pipes[numOfBuilders][2];
+    // Create pipes for splitter-builder communication
+    int SBpipes[numOfBuilders][2];
     for (int i = 0; i < numOfBuilders; i++) {
-        if (pipe(pipes[i]) == -1) {
+        if (pipe(SBpipes[i]) == -1) {
+            perror("pipe");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // Create pipes from builders to root
+    int BRpipes[numOfBuilders][2];
+    for (int i = 0; i < numOfBuilders; i++) {
+        if (pipe(BRpipes[i]) == -1) {
             perror("pipe");
             exit(EXIT_FAILURE);
         }
@@ -137,15 +146,15 @@ int main(int argc, char *argv[]) {
 
             // Close read ends of pipes in splitter
             for (int j = 0; j < numOfBuilders; j++) {
-                close(pipes[j][0]);
+                close(SBpipes[j][0]);
             }
 
             // Concatenate pipe file descriptors into a single string
             char pipeDescriptors[1024] = ""; // Ensure this buffer is large enough to hold all descriptors
             for (int j = 0; j < numOfBuilders; j++) {
-                char pipeStr[10];
-                sprintf(pipeStr, "%d", pipes[j][1]);
-                strcat(pipeDescriptors, pipeStr);
+                char SBpipestr[10];
+                sprintf(SBpipestr, "%d", SBpipes[j][1]);
+                strcat(pipeDescriptors, SBpipestr);
                 if (j < numOfBuilders - 1) {
                     strcat(pipeDescriptors, ",");
                 }
@@ -167,17 +176,23 @@ int main(int argc, char *argv[]) {
         } else if (pid == 0) {
             // Close write ends of pipes in builder
             for (int j = 0; j < numOfBuilders; j++) {
-                close(pipes[j][1]);
+                close(SBpipes[j][1]);
             }
-            
-            dup2(pipes[i][0], STDIN_FILENO); // Redirect input from pipe
-            close(pipes[i][0]);
+            // Close read ends of BRpipes in builder
+            for (int j = 0; j < numOfBuilders; j++) {
+                close(BRpipes[j][0]);
+            }
+            dup2(BRpipes[i][1], STDOUT_FILENO); // Redirect output to BRpipe
+            close(BRpipes[i][1]);
+            dup2(SBpipes[i][0], STDIN_FILENO); // Redirect input from pipe
+            close(SBpipes[i][0]);
             execl("./builder", "builder", (char *)NULL);
             perror("execl");
             exit(EXIT_FAILURE);
         } else {
-            close(pipes[i][0]); // Close read end in parent
-            close(pipes[i][1]); // Close write end in parent
+            close(SBpipes[i][0]); // Close read end in parent
+            close(SBpipes[i][1]); // Close write end in parent
+            close(BRpipes[i][1]); // Close write end in parent
         }
     }
 
@@ -188,6 +203,17 @@ int main(int argc, char *argv[]) {
     int status;
     for (int i = 0; i < numOfSplitter + numOfBuilders; i++) {
         wait(&status);
+    }
+
+    // Διαβάστε από τα pipes των builders
+    for (int i = 0; i < numOfBuilders; i++) {
+        char buffer[1024];
+        int bytesRead;
+        while ((bytesRead = read(BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
+            buffer[bytesRead] = '\0';
+            printf("Received from builder %d: %s\n", i, buffer);
+        }
+        close(BRpipes[i][0]);
     }
 
     // Free memory
