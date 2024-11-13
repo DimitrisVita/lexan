@@ -2,43 +2,36 @@
 
 // Implementations of ADTMap using ADTHash
 
-struct map {
-    Hashtable hashtable;
-};
-
-// Create a new map
 Map createMap(int size) {
-    Map map = (Map)malloc(sizeof(struct map));
-    if (map == NULL) {
-        fprintf(stderr, "Could not allocate memory for map.\n");
-        exit(1);
-    }
-
+    Map map = (Map) malloc(sizeof(struct map));
     map->hashtable = createHashtable(size);
     return map;
 }
 
-// Add a new node to the map
 void addMapNode(Map map, char *key, void *value) {
     addHashNode(map->hashtable, key, value);
 }
 
-// Delete a node from the map
 void deleteMapNode(Map map, char *key) {
     deleteHashNode(map->hashtable, key);
 }
 
-// Get the value given a key
 void *getMapValue(Map map, char *key) {
     return getHashNode(map->hashtable, key);
 }
 
-// Get the size of the map
 int getMapSize(Map map) {
     return getHashtableSize(map->hashtable);
 }
 
-// Free the map
+MapNode getFirstMapNode(Map map) {
+    return getFirstNode(map->hashtable);
+}
+
+MapNode getNextMapNode(Map map, MapNode node) {
+    return getNextNode(map->hashtable, node);
+}
+
 void freeMap(Map map) {
     freeHashtable(map->hashtable);
     free(map);

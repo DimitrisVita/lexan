@@ -17,19 +17,31 @@ int main(int argc, char *argv[]) {
             word[wordIndex] = '\0';
             char *value = getMapValue(map, word);
             if (value == NULL) {
-                addMapNode(map, word, "1");
+                addMapNode(map, strdup(word), strdup("1"));
             } else {
                 int count = atoi(value);
                 count++;
                 char countStr[10];
                 sprintf(countStr, "%d", count);
-                addMapNode(map, word, countStr);
+                deleteMapNode(map, word);
+                addMapNode(map, strdup(word), strdup(countStr));
             }
             wordIndex = 0;
         }
     }
 
+    for (MapNode node = getFirstMapNode(map); node != NULL; node = getNextMapNode(map, node)) {
+        char *key = node->key;
+        char *value = node->value;
+        // Combine key and value as a string
+        char *result = (char *) malloc(strlen(key) + strlen(value) + 2);
+        strcpy(result, key);
+        strcat(result, " ");
+        strcat(result, value);
 
+        printf("%s\n", result);
+
+    }
 
     close(STDIN_FILENO);
 

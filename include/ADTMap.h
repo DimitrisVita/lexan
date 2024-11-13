@@ -5,6 +5,13 @@
 
 typedef struct map* Map;
 
+// Rename the hashnode to mapnode
+typedef struct hash_node* MapNode;
+
+struct map {
+    Hashtable hashtable;
+};
+
 // Create a new map
 Map createMap(int size);
 
@@ -21,7 +28,10 @@ void *getMapValue(Map map, char *key);
 int getMapSize(Map map);
 
 // Get first not null node
+MapNode getFirstMapNode(Map map);
 
+// Get next not null node
+MapNode getNextMapNode(Map map, MapNode node);
 
 // Free the map
 void freeMap(Map map);
