@@ -209,9 +209,10 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < numOfBuilders; i++) {
         char buffer[1024];
         int bytesRead;
+        printf("Builder %d:\n", i);
         while ((bytesRead = read(BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
             buffer[bytesRead] = '\0';
-            printf("Received from builder %d: %s\n", i, buffer);
+            printf("%s", buffer);
         }
         close(BRpipes[i][0]);
     }

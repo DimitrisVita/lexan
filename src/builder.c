@@ -10,7 +10,6 @@ int main(int argc, char *argv[]) {
     int wordIndex = 0;
     char c;
     while (read(STDIN_FILENO, &c, 1) > 0) {
-        printf("%c", c);
         // add word to map
         if (isalpha(c)) {
             word[wordIndex++] = tolower(c);
@@ -31,15 +30,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    int count = getMapSize(map);
-    printf("Words counted: %d\n", count);
-
     for (MapNode node = getFirstMapNode(map); node != NULL; node = getNextMapNode(map, node)) {
         char *key = node->key;
         char *value = node->value;
         // Combine key and value as a string
         char result[256];
-        snprintf(result, sizeof(result), "%s %s", key, value);
+        snprintf(result, sizeof(result), "%s %s\n", key, value);
         write(STDOUT_FILENO, result, strlen(result));
     }
 
