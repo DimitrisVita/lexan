@@ -2,6 +2,7 @@
     "files.associations": {
         "common.h": "c",
         "adtset.h": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "string.h": "c"
     }
 }

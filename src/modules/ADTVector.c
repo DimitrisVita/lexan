@@ -14,6 +14,7 @@ Vector createVector(int size) {
     vector->array = (VectorNode)malloc(size * sizeof(struct vector_node));
     if (vector->array == NULL) {
         fprintf(stderr, "Could not allocate memory for vector array.\n");
+        free(vector);
         exit(1);
     }
 
@@ -28,7 +29,6 @@ Vector createVector(int size) {
 // Add a new node to the vector 
 void addVectorNode(Vector vector, void *data) {
     // Find the first empty node in the vector
-    bool full = true;
     for (int i = 0; i < vector->size; i++) {
         if (vector->array[i].data == NULL) {
             vector->array[i].data = data;
@@ -37,22 +37,21 @@ void addVectorNode(Vector vector, void *data) {
     }
 
     // If the vector is full, double its size
-    if (full) {
-        vector->size *= 2;
-        vector->array = (VectorNode)realloc(vector->array, vector->size * sizeof(struct vector_node));
-        if (vector->array == NULL) {
-            fprintf(stderr, "Could not reallocate memory for vector array.\n");
-            exit(1);
-        }
-
-        // Initialize the new nodes
-        for (int i = vector->size / 2; i < vector->size; i++) {
-            vector->array[i].data = NULL;
-        }
-
-        // Add the new node
-        vector->array[vector->size / 2].data = data;
+    int oldSize = vector->size;
+    vector->size *= 2;
+    vector->array = (VectorNode)realloc(vector->array, vector->size * sizeof(struct vector_node));
+    if (vector->array == NULL) {
+        fprintf(stderr, "Could not reallocate memory for vector array.\n");
+        exit(1);
     }
+
+    // Initialize the new nodes
+    for (int i = oldSize; i < vector->size; i++) {
+        vector->array[i].data = NULL;
+    }
+
+    // Add the new node
+    vector->array[oldSize].data = data;
 }
 
 // Get the size of the vector
@@ -67,6 +66,15 @@ void *getVectorData(Vector vector, int index) {
         return NULL;
     }
     return vector->array[index].data;
+}
+
+void *findVectorData(Vector vector, void *data, bool (*compare)(void *, void *)) {
+    for (int i = 0; i < vector->size; i++) {
+        if (compare(vector->array[i].data, data)) {
+            return vector->array[i].data;
+        }
+    }
+    return NULL;
 }
 
 // Free the vector

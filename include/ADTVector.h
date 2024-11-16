@@ -29,5 +29,7 @@ int getVectorSize(Vector vector);
 // Get the data at a given index
 void *getVectorData(Vector vector, int index);
 
+void *findVectorData(Vector vector, void *data, bool (*compare)(void *, void *));
+
 // Free the vector
 void freeVector(Vector vector);
