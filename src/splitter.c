@@ -82,6 +82,8 @@ int main(int argc, char *argv[]) {
     // Move file descriptor to start line using file descriptor startLine
     lseek(textFd, startDesc, SEEK_SET);
 
+    int count = 0;
+
     // Read every word from the text file, check if it is in the exclusion list, and send it to a specific builder process
     char word[128];
     int wordIndex = 0;
@@ -93,6 +95,7 @@ int main(int argc, char *argv[]) {
             if (!containsElement(exclusionSet, word)) {
                 int builderIndex = hash(word, numOfBuilders);
                 write(pipes[builderIndex], word, strlen(word) + 1);
+                count++;
             }
             wordIndex = 0;
         }
@@ -100,6 +103,8 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+
+    printf("Words sent: %d\n", count);
 
     // close pipe descriptors
     for (int i = 0; i < numOfBuilders; i++) {
