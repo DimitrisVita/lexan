@@ -1,7 +1,5 @@
 #include "common.h"
 #include "ADTMap.h"
-#include <sys/times.h>
-#include <unistd.h>
 
 int main(int argc, char *argv[]) {
     // Start timing
