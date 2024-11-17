@@ -1,8 +1,14 @@
 #include "common.h"
 #include "ADTMap.h"
-#include <time.h>
+#include <sys/times.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[]) {
+    // Start timing
+    struct tms tb1, tb2;
+    double t1, t2, real_time;
+    double ticspersec = (double) sysconf(_SC_CLK_TCK);
+    t1 = (double) times(&tb1);
 
     // Read words from stdin using read() and count their occurrences
     Map map = createMap(1000);
@@ -41,6 +47,15 @@ int main(int argc, char *argv[]) {
     }
 
     close(STDIN_FILENO);
+
+    // End timing
+    t2 = (double) times(&tb2);
+    real_time = (t2 - t1) / ticspersec;
+
+    // Send real time to root
+    char timeLabel[256];
+    sprintf(timeLabel, "TIME:%lf\n", real_time);
+    write(STDOUT_FILENO, timeLabel, strlen(timeLabel));
 
     // Send signal USR2 to root
     kill(getppid(), SIGUSR2);

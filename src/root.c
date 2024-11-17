@@ -1,14 +1,16 @@
 #include "common.h"
 #include "ADTVector.h"
 
+// Global variables to count signals
+volatile sig_atomic_t usr1_count = 0;
+volatile sig_atomic_t usr2_count = 0;
+
 void splitterDone(int sig) {
-    // Διαχείριση σήματος USR1
-    // printf("Splitter done\n");
+    usr1_count++;
 }
 
 void builderDone(int sig) {
-    // Διαχείριση σήματος USR2
-    // printf("Builder done\n");
+    usr2_count++;
 }
 
 // Function that save startDescriptor for each splitter in an array
@@ -51,6 +53,12 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
 }
 
 int main(int argc, char *argv[]) {
+    // Count root process time
+    struct tms tb1, tb2;
+    double t1, t2, real_time;
+    double ticspersec = (double) sysconf(_SC_CLK_TCK);
+    t1 = (double) times(&tb1);
+
     ////////////////////////////
     ///// Argument parsing /////
     ////////////////////////////
@@ -211,6 +219,8 @@ int main(int argc, char *argv[]) {
     // Create vector to store words structs
     Vector words = createVector(1000);
 
+    printf("BUILDERS TIME:\n");
+
     // Read from pipes
     for (int i = 0; i < numOfBuilders; i++) {
         char buffer[256];
@@ -221,16 +231,11 @@ int main(int argc, char *argv[]) {
         while ((bytesRead = safeRead(BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
             buffer[bytesRead] = '\0';
 
-            // print in file
-            FILE *f = fopen(outputFile, "a");
-            if (f == NULL) {
-                printf("Error opening file!\n");
-                exit(1);
+            if (bytesRead == -1) {
+                perror("read");
+                exit(EXIT_FAILURE);
             }
 
-            fprintf(f, "%s", buffer);
-
-            fclose(f);
 
             // Prepend leftover to the buffer
             char combinedBuffer[512];
@@ -244,28 +249,34 @@ int main(int argc, char *argv[]) {
             while ((newline = strchr(line, '\n')) != NULL) {
                 *newline = '\0';
 
-                // Check if the line contains a complete word-count pair
-                char *delimiter = strchr(line, '*');
-                if (delimiter != NULL) {
-                    // Extract the word
-                    *delimiter = '\0';
-                    char *word = line;
-
-                    // Extract the count
-                    char *countStr = delimiter + 1;
-                    int count = atoi(countStr);
-
-                    // Create word struct and add it to vector
-                    Word *wordStruct = (Word *)malloc(sizeof(Word));
-                    wordStruct->word = strdup(word);
-                    wordStruct->count = count;
-
-                    addVectorNode(words, wordStruct);
+                // Check if the line contains CPU time information
+                if (strncmp(line, "TIME:", 5) == 0) {
+                    double cpu_time = atof(line + 5);
+                    printf("%lf sec\n", cpu_time);
                 } else {
-                    // Save the incomplete line as leftover
-                    leftoverLen = strlen(line);
-                    memcpy(leftover, line, leftoverLen);
-                    leftover[leftoverLen] = '\0';
+                    // Check if the line contains a complete word-count pair
+                    char *delimiter = strchr(line, '*');
+                    if (delimiter != NULL) {
+                        // Extract the word
+                        *delimiter = '\0';
+                        char *word = line;
+
+                        // Extract the count
+                        char *countStr = delimiter + 1;
+                        int count = atoi(countStr);
+
+                        // Create word struct and add it to vector
+                        Word *wordStruct = (Word *)malloc(sizeof(Word));
+                        wordStruct->word = strdup(word);
+                        wordStruct->count = count;
+
+                        addVectorNode(words, wordStruct);
+                    } else {
+                        // Save the incomplete line as leftover
+                        leftoverLen = strlen(line);
+                        memcpy(leftover, line, leftoverLen);
+                        leftover[leftoverLen] = '\0';
+                    }
                 }
 
                 line = newline + 1;
@@ -278,10 +289,6 @@ int main(int argc, char *argv[]) {
         }
         close(BRpipes[i][0]);
     }
-
-    // Print vector's data
-
-    printf("Vector size: %d\n", getVectorSize(words));
 
     // Sort vector
     for (int i = 0; i < getVectorSize(words); i++) {
@@ -296,11 +303,42 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    ///////////////////////////
+    ///// Writing to file /////
+    ///////////////////////////
+
+    int fd = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < getVectorSize(words); i++) {
+        Word *word = (Word *)getVectorData(words, i);
+        char line[256];
+        snprintf(line, sizeof(line), "%s: %d\n", word->word, word->count);
+        write(fd, line, strlen(line));
+    }
+
+    close(fd);
+
+    // End timing
+    t2 = (double) times(&tb2);
+    real_time = (t2 - t1) / ticspersec;
+
+    printf("ROOT TIME:\n");
+    printf("%lf sec\n", real_time);
+
     // Print top popular words
+    printf("TOP %d POPULAR WORDS:\n", topPopular);
     for (int i = 0; i < topPopular && i < getVectorSize(words); i++) {
         Word *word = (Word *)getVectorData(words, i);
         printf("%s: %d\n", word->word, word->count);
     }
+
+    // Print the number of signals received
+    printf("Number of SIGUSR1 signals received: %d\n", usr1_count);
+    printf("Number of SIGUSR2 signals received: %d\n", usr2_count);
 
     // Free memory
     free(startDescriptors);

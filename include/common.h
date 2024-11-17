@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/times.h>
 
 typedef struct {
     char *word;
