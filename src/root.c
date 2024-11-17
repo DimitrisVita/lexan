@@ -157,7 +157,8 @@ int main(int argc, char *argv[]) {
             }
 
             // Concatenate pipe file descriptors into a single string
-            char pipeDescriptors[1024] = ""; // Ensure this buffer is large enough to hold all descriptors
+            // allocate memory for pipeDescriptors
+            char *pipeDescriptors = (char *)malloc(10 * numOfBuilders);
             for (int j = 0; j < numOfBuilders; j++) {
                 char SBpipestr[10];
                 sprintf(SBpipestr, "%d", SBpipes[j][1]);
