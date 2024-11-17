@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
         int leftoverLen = 0;
         int bytesRead;
 
-        while ((bytesRead = (BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
+        while ((bytesRead = safeRead(BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
             buffer[bytesRead] = '\0';
 
             // Prepend leftover to the buffer
@@ -244,15 +244,6 @@ int main(int argc, char *argv[]) {
                     char *countStr = delimiter + 1;
                     int count = atoi(countStr);
 
-                    // Save words to file
-                    FILE *file = fopen(outputFile, "a");
-                    if (file == NULL) {
-                        perror("fopen");
-                        exit(EXIT_FAILURE);
-                    }
-                    fprintf(file, "%s %d\n", word, count);
-                    fclose(file);
-
                     // Create word struct and add it to vector
                     Word *wordStruct = (Word *)malloc(sizeof(Word));
                     wordStruct->word = strdup(word);
@@ -269,6 +260,29 @@ int main(int argc, char *argv[]) {
             }
         }
         close(BRpipes[i][0]);
+    }
+
+    // Print vector's data
+
+    printf("Vector size: %d\n", getVectorSize(words));
+
+    // Sort vector
+    for (int i = 0; i < getVectorSize(words); i++) {
+        for (int j = i + 1; j < getVectorSize(words); j++) {
+            Word *word1 = (Word *)getVectorData(words, i);
+            Word *word2 = (Word *)getVectorData(words, j);
+            if (word1->count < word2->count) {
+                void *temp = getVectorData(words, i);
+                setVectorData(words, i, getVectorData(words, j));
+                setVectorData(words, j, temp);
+            }
+        }
+    }
+
+    // Print top popular words
+    for (int i = 0; i < topPopular && i < getVectorSize(words); i++) {
+        Word *word = (Word *)getVectorData(words, i);
+        printf("%s: %d\n", word->word, word->count);
     }
 
     // Free memory

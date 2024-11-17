@@ -17,6 +17,8 @@ typedef struct {
     int count;
 } Word;
 
+ssize_t safeRead(int fd, void *buffer, size_t count);
+
 void sendTimeToRoot(double time_spent);
 
 

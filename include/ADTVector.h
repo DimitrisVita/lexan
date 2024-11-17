@@ -14,6 +14,7 @@ struct vector_node {
 
 struct vector {
     int size;
+    int count;
     VectorNode array;
 };
 
@@ -28,6 +29,9 @@ int getVectorSize(Vector vector);
 
 // Get the data at a given index
 void *getVectorData(Vector vector, int index);
+
+// Set the data at a given index
+void setVectorData(Vector vector, int index, void *data);
 
 void *findVectorData(Vector vector, void *data, bool (*compare)(void *, void *));
 
