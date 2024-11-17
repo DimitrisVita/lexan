@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <string.h>
+#include <errno.h>
 
 typedef struct {
     char *word;

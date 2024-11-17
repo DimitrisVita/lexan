@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
         char *value = node->value;
         // Combine key and value as a string
         char result[256];
-        snprintf(result, sizeof(result), "%s %s\n", key, value);
+        snprintf(result, sizeof(result), "%s*%s\n", key, value);
         write(STDOUT_FILENO, result, strlen(result));
     }
 

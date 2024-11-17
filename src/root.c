@@ -3,12 +3,12 @@
 
 void splitterDone(int sig) {
     // Διαχείριση σήματος USR1
-    printf("Splitter done\n");
+    // printf("Splitter done\n");
 }
 
 void builderDone(int sig) {
     // Διαχείριση σήματος USR2
-    printf("Builder done\n");
+    // printf("Builder done\n");
 }
 
 // Function that save startDescriptor for each splitter in an array
@@ -213,32 +213,63 @@ int main(int argc, char *argv[]) {
     // Create vector to store words structs
     Vector words = createVector(1000);
 
-    // Διαβάστε από τα pipes των builders
-    for (int i = 0; i < numOfBuilders; i++) {
-        char buffer[1024];
-        int bytesRead;
-        printf("Builder %d:\n", i);
-        while ((bytesRead = read(BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
-            buffer[bytesRead] = '\0';
-            char *token = strtok(buffer, " \n");
-            while (token != NULL) {
-                char *word = strdup(token);
-                token = strtok(NULL, " \n");
-                char *count = strdup(token);
-                token = strtok(NULL, " \n");
-                printf("%s %s\n", word, count);
-                Word w = {word, atoi(count)};
 
-                addVectorNode(words, &w);
+    // Read from pipes
+    for (int i = 0; i < numOfBuilders; i++) {
+        char buffer[256];
+        char leftover[256] = {0}; // Buffer to store leftover data
+        int leftoverLen = 0;
+        int bytesRead;
+
+        while ((bytesRead = (BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
+            buffer[bytesRead] = '\0';
+
+            // Prepend leftover to the buffer
+            char combinedBuffer[512];
+            int combinedLen = leftoverLen + bytesRead;
+            memcpy(combinedBuffer, leftover, leftoverLen);
+            memcpy(combinedBuffer + leftoverLen, buffer, bytesRead);
+            combinedBuffer[combinedLen] = '\0';
+
+            char *token = strtok(combinedBuffer, "\n");
+            while (token != NULL) {
+                // Check if the token contains a complete word-count pair
+                char *delimiter = strchr(token, '*');
+                if (delimiter != NULL) {
+                    // Extract the word
+                    *delimiter = '\0';
+                    char *word = token;
+
+                    // Extract the count
+                    char *countStr = delimiter + 1;
+                    int count = atoi(countStr);
+
+                    // Save words to file
+                    FILE *file = fopen(outputFile, "a");
+                    if (file == NULL) {
+                        perror("fopen");
+                        exit(EXIT_FAILURE);
+                    }
+                    fprintf(file, "%s %d\n", word, count);
+                    fclose(file);
+
+                    // Create word struct and add it to vector
+                    Word *wordStruct = (Word *)malloc(sizeof(Word));
+                    wordStruct->word = strdup(word);
+                    wordStruct->count = count;
+                    addVectorNode(words, wordStruct);
+                } else {
+                    // Save the incomplete token as leftover
+                    leftoverLen = strlen(token);
+                    memcpy(leftover, token, leftoverLen);
+                    leftover[leftoverLen] = '\0';
+                }
+
+                token = strtok(NULL, "\n");
             }
         }
         close(BRpipes[i][0]);
     }
-
-    // for (VectorNode node = getFirstVectorNode(words); node != NULL; node = getNextVectorNode(words, node)) {
-    //     Word *word = (Word *)node->data;
-    //     printf("%s %d\n", word->word, word->count);
-    // }
 
     // Free memory
     free(startDescriptors);
