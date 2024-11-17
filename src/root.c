@@ -1,4 +1,5 @@
 #include "common.h"
+#include "ADTVector.h"
 
 void splitterDone(int sig) {
     // Διαχείριση σήματος USR1
@@ -205,6 +206,13 @@ int main(int argc, char *argv[]) {
         wait(&status);
     }
 
+    ///////////////////////////
+    ///// Reading from pipes //
+    ///////////////////////////
+
+    // Create vector to store words structs
+    Vector words = createVector(1000);
+
     // Διαβάστε από τα pipes των builders
     for (int i = 0; i < numOfBuilders; i++) {
         char buffer[1024];
@@ -212,10 +220,25 @@ int main(int argc, char *argv[]) {
         printf("Builder %d:\n", i);
         while ((bytesRead = read(BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
             buffer[bytesRead] = '\0';
-            printf("%s", buffer);
+            char *token = strtok(buffer, " \n");
+            while (token != NULL) {
+                char *word = strdup(token);
+                token = strtok(NULL, " \n");
+                char *count = strdup(token);
+                token = strtok(NULL, " \n");
+                printf("%s %s\n", word, count);
+                Word w = {word, atoi(count)};
+
+                addVectorNode(words, &w);
+            }
         }
         close(BRpipes[i][0]);
     }
+
+    // for (VectorNode node = getFirstVectorNode(words); node != NULL; node = getNextVectorNode(words, node)) {
+    //     Word *word = (Word *)node->data;
+    //     printf("%s %d\n", word->word, word->count);
+    // }
 
     // Free memory
     free(startDescriptors);

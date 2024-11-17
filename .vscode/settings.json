@@ -3,6 +3,7 @@
         "common.h": "c",
         "adtset.h": "c",
         "unistd.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "adtvector.h": "c"
     }
 }
