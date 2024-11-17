@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
     for (MapNode node = getFirstMapNode(map); node != NULL; node = getNextMapNode(map, node)) {
         char *key = node->key;
         char *value = node->value;
+
         // Combine key and value as a string
         char result[256];
         snprintf(result, sizeof(result), "%s*%s\n", key, value);

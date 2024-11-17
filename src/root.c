@@ -50,8 +50,6 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
     return startDescriptors;
 }
 
-
-
 int main(int argc, char *argv[]) {
     ////////////////////////////
     ///// Argument parsing /////
@@ -213,7 +211,6 @@ int main(int argc, char *argv[]) {
     // Create vector to store words structs
     Vector words = createVector(1000);
 
-
     // Read from pipes
     for (int i = 0; i < numOfBuilders; i++) {
         char buffer[256];
@@ -224,6 +221,17 @@ int main(int argc, char *argv[]) {
         while ((bytesRead = safeRead(BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
             buffer[bytesRead] = '\0';
 
+            // print in file
+            FILE *f = fopen(outputFile, "a");
+            if (f == NULL) {
+                printf("Error opening file!\n");
+                exit(1);
+            }
+
+            fprintf(f, "%s", buffer);
+
+            fclose(f);
+
             // Prepend leftover to the buffer
             char combinedBuffer[512];
             int combinedLen = leftoverLen + bytesRead;
@@ -231,14 +239,17 @@ int main(int argc, char *argv[]) {
             memcpy(combinedBuffer + leftoverLen, buffer, bytesRead);
             combinedBuffer[combinedLen] = '\0';
 
-            char *token = strtok(combinedBuffer, "\n");
-            while (token != NULL) {
-                // Check if the token contains a complete word-count pair
-                char *delimiter = strchr(token, '*');
+            char *line = combinedBuffer;
+            char *newline;
+            while ((newline = strchr(line, '\n')) != NULL) {
+                *newline = '\0';
+
+                // Check if the line contains a complete word-count pair
+                char *delimiter = strchr(line, '*');
                 if (delimiter != NULL) {
                     // Extract the word
                     *delimiter = '\0';
-                    char *word = token;
+                    char *word = line;
 
                     // Extract the count
                     char *countStr = delimiter + 1;
@@ -248,16 +259,22 @@ int main(int argc, char *argv[]) {
                     Word *wordStruct = (Word *)malloc(sizeof(Word));
                     wordStruct->word = strdup(word);
                     wordStruct->count = count;
+
                     addVectorNode(words, wordStruct);
                 } else {
-                    // Save the incomplete token as leftover
-                    leftoverLen = strlen(token);
-                    memcpy(leftover, token, leftoverLen);
+                    // Save the incomplete line as leftover
+                    leftoverLen = strlen(line);
+                    memcpy(leftover, line, leftoverLen);
                     leftover[leftoverLen] = '\0';
                 }
 
-                token = strtok(NULL, "\n");
+                line = newline + 1;
             }
+
+            // Save any remaining incomplete line as leftover
+            leftoverLen = strlen(line);
+            memcpy(leftover, line, leftoverLen);
+            leftover[leftoverLen] = '\0';
         }
         close(BRpipes[i][0]);
     }
