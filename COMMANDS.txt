@@ -2,3 +2,5 @@
 
 
 dimples
+
+( rm -f /tmp/excl.$$ && mkfifo /tmp/excl.$$ && tr 'A-Z' 'a-z' < ExclusionList1_a.txt | sort -u -o /tmp/excl.$$ & sed 's/[^a-zA-Z]\{1,\}/ /g;s/^ *//;s/ *$//;/^$/d' GreatExpectations_a.txt | tr 'A-Z' 'a-z' | tr ' ' '\n' | sort | join -v 1 - /tmp/excl.$$ | uniq -c | sort -rn ; /bin/rm -f /tmp/excl.$$ ) | less
