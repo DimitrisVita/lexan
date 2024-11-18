@@ -168,9 +168,8 @@ void createBuilderProcesses(int numOfBuilders, int SBpipes[numOfBuilders][2], in
     }
 }
 
-
-// Function to read from pipe builder-root
-void readFromPipe(int fd, Vector words, double builderTimes[], int builderIndex) {
+// Function to read from pipe
+void readFromPipe(int fd, Vector words, double builderTimes[], int *builderIndex) {
     char buffer[256];
     char leftover[256] = {0}; // Buffer to store leftover data
     int leftoverLen = 0;
@@ -199,7 +198,7 @@ void readFromPipe(int fd, Vector words, double builderTimes[], int builderIndex)
             // Check if the line contains CPU time information
             if (strncmp(line, "TIME:", 5) == 0) {
                 double time = atof(line + 5);
-                builderTimes[builderIndex++] = time;
+                builderTimes[(*builderIndex)++] = time;
             } else {
                 // Check if the line contains a complete word-count pair
                 char *delimiter = strchr(line, '*');
@@ -236,6 +235,23 @@ void readFromPipe(int fd, Vector words, double builderTimes[], int builderIndex)
     }
 }
 
+// Function to write words to file
+void writeToFile(Vector words, char *outputFile) {
+    int fd = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < getVectorSize(words); i++) {
+        Word *word = (Word *)getVectorData(words, i);
+        char line[256];
+        snprintf(line, sizeof(line), "%s: %d\n", word->word, word->count);
+        write(fd, line, strlen(line));
+    }
+
+    close(fd);
+}
 
 int main(int argc, char *argv[]) {
     // Start timer for root process
@@ -278,113 +294,26 @@ int main(int argc, char *argv[]) {
 
     // Read from pipes
     for (int i = 0; i < numOfBuilders; i++) {
-        char buffer[256];
-        char leftover[256] = {0}; // Buffer to store leftover data
-        int leftoverLen = 0;
-        int bytesRead;
-
-        while ((bytesRead = safeRead(BRpipes[i][0], buffer, sizeof(buffer) - 1)) > 0) {
-            buffer[bytesRead] = '\0';
-
-            if (bytesRead == -1) {
-                perror("read");
-                exit(EXIT_FAILURE);
-            }
-
-
-            // Prepend leftover to the buffer
-            char combinedBuffer[512];
-            int combinedLen = leftoverLen + bytesRead;
-            memcpy(combinedBuffer, leftover, leftoverLen);
-            memcpy(combinedBuffer + leftoverLen, buffer, bytesRead);
-            combinedBuffer[combinedLen] = '\0';
-
-            char *line = combinedBuffer;
-            char *newline;
-            while ((newline = strchr(line, '\n')) != NULL) {
-                *newline = '\0';
-
-                // Check if the line contains CPU time information
-                if (strncmp(line, "TIME:", 5) == 0) {
-                    double time = atof(line + 5);
-                    builderTimes[builderIndex++] = time;
-                } else {
-                    // Check if the line contains a complete word-count pair
-                    char *delimiter = strchr(line, '*');
-                    if (delimiter != NULL) {
-                        // Extract the word
-                        *delimiter = '\0';
-                        char *word = line;
-
-                        // Extract the count
-                        char *countStr = delimiter + 1;
-                        int count = atoi(countStr);
-
-                        // Create word struct and add it to vector
-                        Word *wordStruct = (Word *)malloc(sizeof(Word));
-                        wordStruct->word = strdup(word);
-                        wordStruct->count = count;
-
-                        addVectorNode(words, wordStruct);
-                    } else {
-                        // Save the incomplete line as leftover
-                        leftoverLen = strlen(line);
-                        memcpy(leftover, line, leftoverLen);
-                        leftover[leftoverLen] = '\0';
-                    }
-                }
-
-                line = newline + 1;
-            }
-
-            // Save any remaining incomplete line as leftover
-            leftoverLen = strlen(line);
-            memcpy(leftover, line, leftoverLen);
-            leftover[leftoverLen] = '\0';
-        }
-        close(BRpipes[i][0]);
+        readFromPipe(BRpipes[i][0], words, builderTimes, &builderIndex);
+        close(BRpipes[i][0]);   // Close the pipe after reading
     }
-
-    printf("BUILDERS TIME:\n");
-    for (int i = 0; i < numOfBuilders; i++)
-        printf("%lf sec\n", builderTimes[i]);
 
     // Sort vector
-    for (int i = 0; i < getVectorSize(words); i++) {
-        for (int j = i + 1; j < getVectorSize(words); j++) {
-            Word *word1 = (Word *)getVectorData(words, i);
-            Word *word2 = (Word *)getVectorData(words, j);
-            if (word1->count < word2->count) {
-                void *temp = getVectorData(words, i);
-                setVectorData(words, i, getVectorData(words, j));
-                setVectorData(words, j, temp);
-            }
-        }
-    }
+    sortVector(words, compareWords);
 
-    ///////////////////////////
-    ///// Writing to file /////
-    ///////////////////////////
-
-    int fd = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd == -1) {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
-
-    for (int i = 0; i < getVectorSize(words); i++) {
-        Word *word = (Word *)getVectorData(words, i);
-        char line[256];
-        snprintf(line, sizeof(line), "%s: %d\n", word->word, word->count);
-        write(fd, line, strlen(line));
-    }
-
-    close(fd);
-
+    // Write words to file
+    writeToFile(words, outputFile);
+    
     // End timing
     t2 = (double) times(&tb2);
     real_time = (t2 - t1) / ticspersec;
 
+    // Print builder times
+    printf("BUILDERS TIME:\n");
+    for (int i = 0; i < numOfBuilders; i++)
+        printf("%lf sec\n", builderTimes[i]);
+
+    // Print root time
     printf("ROOT TIME:\n");
     printf("%lf sec\n", real_time);
 
@@ -401,5 +330,6 @@ int main(int argc, char *argv[]) {
 
     // Free memory
     free(startDescriptors);
+    freeVector(words);
     return 0;
 }

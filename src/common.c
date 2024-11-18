@@ -1,5 +1,13 @@
 #include "common.h"
 
+// Function to compare words
+int compareWords(const void *a, const void *b) {
+    Word *wordA = (Word *)a;
+    Word *wordB = (Word *)b;
+
+    return wordB->count - wordA->count;
+}
+
 ssize_t safeRead(int fd, void *buffer, size_t count) {
     ssize_t totalBytesRead = 0;
     ssize_t bytesRead;

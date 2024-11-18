@@ -18,6 +18,8 @@ typedef struct {
     int count;
 } Word;
 
+int compareWords(const void *a, const void *b);
+
 ssize_t safeRead(int fd, void *buffer, size_t count);
 
 void sendTimeToRoot(double time_spent);

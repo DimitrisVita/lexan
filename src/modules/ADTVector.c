@@ -74,6 +74,7 @@ void setVectorData(Vector vector, int index, void *data) {
     vector->array[index].data = data;
 }
 
+// Find data in the vector
 void *findVectorData(Vector vector, void *data, bool (*compare)(void *, void *)) {
     for (int i = 0; i < vector->count; i++) { // Iterate up to count
         if (compare(vector->array[i].data, data)) {
@@ -81,6 +82,19 @@ void *findVectorData(Vector vector, void *data, bool (*compare)(void *, void *))
         }
     }
     return NULL;
+}
+
+// Sort the vector
+void sortVector(Vector vector, int (*compare)(const void *, const void *)) {
+    for (int i = 0; i < vector->count; i++) {
+        for (int j = i + 1; j < vector->count; j++) {
+            if (compare(vector->array[i].data, vector->array[j].data) > 0) {
+                void *temp = vector->array[i].data;
+                vector->array[i].data = vector->array[j].data;
+                vector->array[j].data = temp;
+            }
+        }
+    }
 }
 
 // Free the vector

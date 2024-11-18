@@ -33,7 +33,11 @@ void *getVectorData(Vector vector, int index);
 // Set the data at a given index
 void setVectorData(Vector vector, int index, void *data);
 
+// Find data in the vector
 void *findVectorData(Vector vector, void *data, bool (*compare)(void *, void *));
+
+// Sort the vector
+void sortVector(Vector vector, int (*compare)(const void *, const void *));
 
 // Free the vector
 void freeVector(Vector vector);
