@@ -168,6 +168,75 @@ void createBuilderProcesses(int numOfBuilders, int SBpipes[numOfBuilders][2], in
     }
 }
 
+
+// Function to read from pipe builder-root
+void readFromPipe(int fd, Vector words, double builderTimes[], int builderIndex) {
+    char buffer[256];
+    char leftover[256] = {0}; // Buffer to store leftover data
+    int leftoverLen = 0;
+    int bytesRead;
+
+    while ((bytesRead = safeRead(fd, buffer, sizeof(buffer) - 1)) > 0) {
+        buffer[bytesRead] = '\0';
+
+        if (bytesRead == -1) {
+            perror("read");
+            exit(EXIT_FAILURE);
+        }
+
+        // Prepend leftover to the buffer
+        char combinedBuffer[512];
+        int combinedLen = leftoverLen + bytesRead;
+        memcpy(combinedBuffer, leftover, leftoverLen);
+        memcpy(combinedBuffer + leftoverLen, buffer, bytesRead);
+        combinedBuffer[combinedLen] = '\0';
+
+        char *line = combinedBuffer;
+        char *newline;
+        while ((newline = strchr(line, '\n')) != NULL) {
+            *newline = '\0';
+
+            // Check if the line contains CPU time information
+            if (strncmp(line, "TIME:", 5) == 0) {
+                double time = atof(line + 5);
+                builderTimes[builderIndex++] = time;
+            } else {
+                // Check if the line contains a complete word-count pair
+                char *delimiter = strchr(line, '*');
+                if (delimiter != NULL) {
+                    // Extract the word
+                    *delimiter = '\0';
+                    char *word = line;
+
+                    // Extract the count
+                    char *countStr = delimiter + 1;
+                    int count = atoi(countStr);
+
+                    // Create word struct and add it to vector
+                    Word *wordStruct = (Word *)malloc(sizeof(Word));
+                    wordStruct->word = strdup(word);
+                    wordStruct->count = count;
+
+                    addVectorNode(words, wordStruct);
+                } else {
+                    // Save the incomplete line as leftover
+                    leftoverLen = strlen(line);
+                    memcpy(leftover, line, leftoverLen);
+                    leftover[leftoverLen] = '\0';
+                }
+            }
+
+            line = newline + 1;
+        }
+
+        // Save any remaining incomplete line as leftover
+        leftoverLen = strlen(line);
+        memcpy(leftover, line, leftoverLen);
+        leftover[leftoverLen] = '\0';
+    }
+}
+
+
 int main(int argc, char *argv[]) {
     // Start timer for root process
     struct tms tb1, tb2;
@@ -203,7 +272,9 @@ int main(int argc, char *argv[]) {
     // Create vector to store words structs
     Vector words = createVector(1000);
 
-    printf("BUILDERS TIME:\n");
+    // Array to store time spent by each builder
+    double builderTimes[numOfBuilders];
+    int builderIndex = 0;
 
     // Read from pipes
     for (int i = 0; i < numOfBuilders; i++) {
@@ -235,8 +306,8 @@ int main(int argc, char *argv[]) {
 
                 // Check if the line contains CPU time information
                 if (strncmp(line, "TIME:", 5) == 0) {
-                    double cpu_time = atof(line + 5);
-                    printf("%lf sec\n", cpu_time);
+                    double time = atof(line + 5);
+                    builderTimes[builderIndex++] = time;
                 } else {
                     // Check if the line contains a complete word-count pair
                     char *delimiter = strchr(line, '*');
@@ -273,6 +344,10 @@ int main(int argc, char *argv[]) {
         }
         close(BRpipes[i][0]);
     }
+
+    printf("BUILDERS TIME:\n");
+    for (int i = 0; i < numOfBuilders; i++)
+        printf("%lf sec\n", builderTimes[i]);
 
     // Sort vector
     for (int i = 0; i < getVectorSize(words); i++) {
