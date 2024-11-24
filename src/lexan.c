@@ -82,6 +82,7 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
             }
         }
     }
+    
     close(fd);
     return startDescriptors;
 }
@@ -111,6 +112,7 @@ void createSplitterProcesses(int numOfSplitter, int numOfBuilders, int startDesc
 
             // Concatenate pipe file descriptors into a single string
             char *pipeDescriptors = (char *)malloc(10 * numOfBuilders);
+            pipeDescriptors[0] = '\0'; // Initialize the string
             for (int j = 0; j < numOfBuilders; j++) {
                 char SBpipestr[10];
                 sprintf(SBpipestr, "%d", SBpipes[j][1]);
@@ -170,27 +172,26 @@ void createBuilderProcesses(int numOfBuilders, int SBpipes[numOfBuilders][2], in
 
 // Function to read from pipe
 void readFromPipe(int fd, Vector words, double builderTimes[], int *builderIndex) {
-    char word[128];
-    int wordIndex = 0;
-    int wordLen;
-    while (safeRead(fd, &wordLen, sizeof(int)) > 0) {
-        if (wordLen == 777) {
-            // Read time spent by builder
+    char word[128]; // Buffer to store word
+    int wordLen;    // Length of word
+    while (safeRead(fd, &wordLen, sizeof(int)) > 0) {   // Read word length
+        if (wordLen == 777) {   // Length of 777 indicates time spent by builder read
             double time_spent;
-            if (safeRead(fd, &time_spent, sizeof(double)) != sizeof(double)) {
-                fprintf(stderr, "Failed to read the complete time\n");
+            if (safeRead(fd, &time_spent, sizeof(double)) != sizeof(double)) {  // Read time spent
+                fprintf(stderr, "Failed to read time\n");
                 continue;
             }
-            builderTimes[*builderIndex] = time_spent;
-            (*builderIndex)++;
+            builderTimes[(*builderIndex)++] = time_spent;
             continue;
         }
 
+        // Read word length
         if (wordLen <= 0 || wordLen >= sizeof(word)) {
             fprintf(stderr, "Invalid word length: %d\n", wordLen);
             continue;
         }
 
+        // Read word
         if (safeRead(fd, word, wordLen) != wordLen) {
             fprintf(stderr, "Failed to read the complete word\n");
             continue;
