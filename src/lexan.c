@@ -124,7 +124,7 @@ void createSplitterProcesses(int numOfSplitter, int numOfBuilders, int startDesc
                 close(SBpipes[j][0]);
 
             // Execute splitter
-            execl("./splitter", "splitter", textFile, exclusionList, startDescStr, endDescStr, numOfBuildersStr, pipeDescriptors, (char *)NULL);
+            execl("./obj/splitter", "splitter", textFile, exclusionList, startDescStr, endDescStr, numOfBuildersStr, pipeDescriptors, (char *)NULL);
             free(pipeDescriptors);  // Free memory
             perror("execl");
             exit(EXIT_FAILURE);
@@ -157,7 +157,7 @@ void createBuilderProcesses(int numOfBuilders, int SBpipes[numOfBuilders][2], in
             close(SBpipes[i][0]);
 
             // Execute builder
-            execl("./builder", "builder", (char *)NULL);
+            execl("./obj/builder", "builder", (char *)NULL);
             perror("execl");
             exit(EXIT_FAILURE);
         } else {
