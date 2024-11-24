@@ -13,35 +13,45 @@ int main(int argc, char *argv[]) {
     char word[128];
     int wordIndex = 0;
     char c;
-    while (read(STDIN_FILENO, &c, 1) > 0) {
-        // add word to map
-        if (isalpha(c)) {
-            word[wordIndex++] = tolower(c);
-        } else if (wordIndex > 0) {
-            word[wordIndex] = '\0';
-            char *value = getMapValue(map, word);
-            if (value == NULL) {
-                addMapNode(map, strdup(word), strdup("1"));
-            } else {
-                int count = atoi(value);
-                count++;
-                char countStr[10];
-                sprintf(countStr, "%d", count);
-                deleteMapNode(map, word);
-                addMapNode(map, strdup(word), strdup(countStr));
-            }
-            wordIndex = 0;
+    int wordLen;
+    while (safeRead(STDIN_FILENO, &wordLen, sizeof(int)) > 0) {
+        if (wordLen <= 0 || wordLen >= sizeof(word)) {
+            fprintf(stderr, "Invalid word length: %d\n", wordLen);
+            continue;
+        }
+        if (safeRead(STDIN_FILENO, word, wordLen) != wordLen) {
+            fprintf(stderr, "Failed to read the complete word\n");
+            continue;
+        }
+        word[wordLen] = '\0';        
+        char *value = getMapValue(map, word);
+        if (value == NULL) {
+            addMapNode(map, strdup(word), strdup("1"));
+        } else {
+            int count = atoi(value);
+            count++;
+            char countStr[12];
+            sprintf(countStr, "%d", count);
+            deleteMapNode(map, word);
+            addMapNode(map, strdup(word), strdup(countStr));
         }
     }
 
+    // Send words and their counts to root
     for (MapNode node = getFirstMapNode(map); node != NULL; node = getNextMapNode(map, node)) {
-        char *key = node->key;
-        char *value = node->value;
+        if (node->key == NULL || node->value == NULL) {
+            fprintf(stderr, "Invalid node key or value\n");
+            continue;
+        }
+        char *word = node->key;
+        int count = atoi(node->value);
+        int wordLen = strlen(word);
 
-        // Combine key and value as a string
-        char result[256];
-        snprintf(result, sizeof(result), "%s*%s\n", key, value);
-        write(STDOUT_FILENO, result, strlen(result));
+        char message[140]; // 4 bytes for wordLen + wordLen bytes for word + 4 bytes for count
+        memcpy(message, &wordLen, sizeof(int));
+        memcpy(message + sizeof(int), word, wordLen);
+        memcpy(message + sizeof(int) + wordLen, &count, sizeof(int));
+        write(STDOUT_FILENO, message, sizeof(int) + wordLen + sizeof(int));
     }
 
     close(STDIN_FILENO);
@@ -51,9 +61,12 @@ int main(int argc, char *argv[]) {
     real_time = (t2 - t1) / ticspersec;
 
     // Send real time to root
-    char timeLabel[256];
-    sprintf(timeLabel, "TIME:%lf\n", real_time);
-    write(STDOUT_FILENO, timeLabel, strlen(timeLabel));
+    // use fake length of word as a flag to indicate the time
+    int timeFlag = 777;
+    char message[sizeof(int) + sizeof(double)];
+    memcpy(message, &timeFlag, sizeof(int));
+    memcpy(message + sizeof(int), &real_time, sizeof(double));
+    write(STDOUT_FILENO, message, sizeof(message));
 
     // Send signal USR2 to root
     kill(getppid(), SIGUSR2);

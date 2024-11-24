@@ -92,7 +92,11 @@ int main(int argc, char *argv[]) {
             word[wordIndex] = '\0';
             if (!containsElement(exclusionSet, word)) {
                 int builderIndex = hash(word, numOfBuilders);
-                write(pipes[builderIndex], word, strlen(word) + 1);
+                int wordLen = wordIndex;
+                char message[132]; // 4 bytes for wordLen + 128 bytes for word
+                memcpy(message, &wordLen, sizeof(int));
+                memcpy(message + sizeof(int), word, wordLen);                
+                write(pipes[builderIndex], message, sizeof(int) + wordLen);
             }
             wordIndex = 0;
         }

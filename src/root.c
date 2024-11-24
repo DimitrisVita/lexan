@@ -170,68 +170,45 @@ void createBuilderProcesses(int numOfBuilders, int SBpipes[numOfBuilders][2], in
 
 // Function to read from pipe
 void readFromPipe(int fd, Vector words, double builderTimes[], int *builderIndex) {
-    char buffer[256];
-    char leftover[256] = {0}; // Buffer to store leftover data
-    int leftoverLen = 0;
-    int bytesRead;
-
-    while ((bytesRead = safeRead(fd, buffer, sizeof(buffer) - 1)) > 0) {
-        buffer[bytesRead] = '\0';
-
-        if (bytesRead == -1) {
-            perror("read");
-            exit(EXIT_FAILURE);
-        }
-
-        // Prepend leftover to the buffer
-        char combinedBuffer[512];
-        int combinedLen = leftoverLen + bytesRead;
-        memcpy(combinedBuffer, leftover, leftoverLen);
-        memcpy(combinedBuffer + leftoverLen, buffer, bytesRead);
-        combinedBuffer[combinedLen] = '\0';
-
-        char *line = combinedBuffer;
-        char *newline;
-        while ((newline = strchr(line, '\n')) != NULL) {
-            *newline = '\0';
-
-            // Check if the line contains CPU time information
-            if (strncmp(line, "TIME:", 5) == 0) {
-                double time = atof(line + 5);
-                builderTimes[(*builderIndex)++] = time;
-            } else {
-                // Check if the line contains a complete word-count pair
-                char *delimiter = strchr(line, '*');
-                if (delimiter != NULL) {
-                    // Extract the word
-                    *delimiter = '\0';
-                    char *word = line;
-
-                    // Extract the count
-                    char *countStr = delimiter + 1;
-                    int count = atoi(countStr);
-
-                    // Create word struct and add it to vector
-                    Word *wordStruct = (Word *)malloc(sizeof(Word));
-                    wordStruct->word = strdup(word);
-                    wordStruct->count = count;
-
-                    addVectorNode(words, wordStruct);
-                } else {
-                    // Save the incomplete line as leftover
-                    leftoverLen = strlen(line);
-                    memcpy(leftover, line, leftoverLen);
-                    leftover[leftoverLen] = '\0';
-                }
+    char word[128];
+    int wordIndex = 0;
+    int wordLen;
+    while (safeRead(fd, &wordLen, sizeof(int)) > 0) {
+        if (wordLen == 777) {
+            // Read time spent by builder
+            double time_spent;
+            if (safeRead(fd, &time_spent, sizeof(double)) != sizeof(double)) {
+                fprintf(stderr, "Failed to read the complete time\n");
+                continue;
             }
-
-            line = newline + 1;
+            builderTimes[*builderIndex] = time_spent;
+            (*builderIndex)++;
+            continue;
         }
 
-        // Save any remaining incomplete line as leftover
-        leftoverLen = strlen(line);
-        memcpy(leftover, line, leftoverLen);
-        leftover[leftoverLen] = '\0';
+        if (wordLen <= 0 || wordLen >= sizeof(word)) {
+            fprintf(stderr, "Invalid word length: %d\n", wordLen);
+            continue;
+        }
+
+        if (safeRead(fd, word, wordLen) != wordLen) {
+            fprintf(stderr, "Failed to read the complete word\n");
+            continue;
+        }
+        word[wordLen] = '\0';
+
+        // Read count
+        int count;
+        if (safeRead(fd, &count, sizeof(int)) != sizeof(int)) {
+            fprintf(stderr, "Failed to read the complete count\n");
+            continue;
+        }
+
+        // Add word to vector
+        Word *wordStruct = (Word *)malloc(sizeof(Word));
+        wordStruct->word = strdup(word);
+        wordStruct->count = count;
+        addVectorNode(words, wordStruct);
     }
 }
 
