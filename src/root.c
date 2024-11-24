@@ -12,18 +12,18 @@ void builderDone(int sig) { usr2_count++; }
 // Function for argument parsing
 void argumentParsing(int argc, char *argv[], char **textFile, int *numOfSplitter, int *numOfBuilders, int *topPopular, char **exclusionList, char **outputFile) {
     int opt;
-    while ((opt = getopt(argc, argv, "t:s:b:p:e:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:l:m:t:e:o:")) != -1) {
         switch (opt) {
-            case 't':
+            case 'i':
                 *textFile = optarg;
                 break;
-            case 's':
+            case 'l':
                 *numOfSplitter = atoi(optarg);
                 break;
-            case 'b':
+            case 'm':
                 *numOfBuilders = atoi(optarg);
                 break;
-            case 'p':
+            case 't':
                 *topPopular = atoi(optarg);
                 break;
             case 'e':
@@ -33,13 +33,13 @@ void argumentParsing(int argc, char *argv[], char **textFile, int *numOfSplitter
                 *outputFile = optarg;
                 break;
             default:
-                fprintf(stderr, "Usage: %s -t textFile -s numOfSplitter -b numOfBuilders -p topPopular -e exclusionList -o outputFile\n", argv[0]);
+                fprintf(stderr, "Usage: %s -i textFile -l numOfSplitter -m numOfBuilders -t topPopular -e exclusionList -o outputFile\n", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
     
     if (*textFile == NULL || *numOfSplitter <= 0 || *numOfBuilders <= 0 || *topPopular <= 0 || *exclusionList == NULL || *outputFile == NULL) {
-        fprintf(stderr, "Usage: %s -t textFile -s numOfSplitter -b numOfBuilders -p topPopular -e exclusionList -o outputFile\n", argv[0]);
+        fprintf(stderr, "Usage: %s -i textFile -l numOfSplitter -m numOfBuilders -t topPopular -e exclusionList -o outputFile\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 }
