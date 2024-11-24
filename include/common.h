@@ -12,18 +12,18 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/times.h>
+#include <stdbool.h>
 
 typedef struct {
     char *word;
     int count;
 } Word;
 
+void freeWord(void *word);
+
 int compareWords(const void *a, const void *b);
 
 ssize_t safeRead(int fd, void *buffer, size_t count);
-
-void sendTimeToRoot(double time_spent);
-
 
 
 #endif // COMMON_H

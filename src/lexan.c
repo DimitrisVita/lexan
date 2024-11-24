@@ -14,24 +14,12 @@ void argumentParsing(int argc, char *argv[], char **textFile, int *numOfSplitter
     int opt;
     while ((opt = getopt(argc, argv, "i:l:m:t:e:o:")) != -1) {
         switch (opt) {
-            case 'i':
-                *textFile = optarg;
-                break;
-            case 'l':
-                *numOfSplitter = atoi(optarg);
-                break;
-            case 'm':
-                *numOfBuilders = atoi(optarg);
-                break;
-            case 't':
-                *topPopular = atoi(optarg);
-                break;
-            case 'e':
-                *exclusionList = optarg;
-                break;
-            case 'o':
-                *outputFile = optarg;
-                break;
+            case 'i': *textFile = optarg; break;
+            case 'l': *numOfSplitter = atoi(optarg); break;
+            case 'm': *numOfBuilders = atoi(optarg); break;
+            case 't': *topPopular = atoi(optarg); break;
+            case 'e': *exclusionList = optarg; break;
+            case 'o': *outputFile = optarg; break;
             default:
                 fprintf(stderr, "Usage: %s -i textFile -l numOfSplitter -m numOfBuilders -t topPopular -e exclusionList -o outputFile\n", argv[0]);
                 exit(EXIT_FAILURE);
@@ -44,7 +32,7 @@ void argumentParsing(int argc, char *argv[], char **textFile, int *numOfSplitter
     }
 }
 
-// Function that save startDescriptor for each splitter in an array
+// Function that saves startDescriptor for each splitter in an array
 int *saveStartDescriptors(int numOfSplitter, char *textFile) {
     int fd = open(textFile, O_RDONLY);
     if (fd == -1) {
@@ -65,7 +53,6 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
 
     int *startDescriptors = (int *)malloc(numOfSplitter * sizeof(int)); // Array to save startDescriptor
     int readCount = 0;  // Count characters read
-    int lineCount = 0;  // Count lines read
 
     lseek(fd, 0, SEEK_SET); // Reset file descriptor to start of file
     
@@ -75,10 +62,7 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
         for (int j = 0; j < linesPerSplitter + (i < remainingLines ? 1 : 0); j++) {
             while (read(fd, &c, 1) > 0) {
                 readCount++;
-                if (c == '\n') {
-                    lineCount++;
-                    break;
-                }
+                if (c == '\n') break;
             }
         }
     }
@@ -132,6 +116,7 @@ void createSplitterProcesses(int numOfSplitter, int numOfBuilders, int startDesc
             exit(EXIT_FAILURE);
         }
     }
+    free(startDescriptors);  // Free memory
 }
 
 // Function to create builder processes
@@ -179,7 +164,7 @@ void readFromPipe(int fd, Vector words, double builderTimes[], int *builderIndex
             double time_spent;
             if (safeRead(fd, &time_spent, sizeof(double)) != sizeof(double)) {  // Read time spent
                 fprintf(stderr, "Failed to read time\n");
-                continue;
+                exit(EXIT_FAILURE);
             }
             builderTimes[(*builderIndex)++] = time_spent;
             continue;
@@ -188,13 +173,13 @@ void readFromPipe(int fd, Vector words, double builderTimes[], int *builderIndex
         // Read word length
         if (wordLen <= 0 || wordLen >= sizeof(word)) {
             fprintf(stderr, "Invalid word length: %d\n", wordLen);
-            continue;
+            exit(EXIT_FAILURE);
         }
 
         // Read word
         if (safeRead(fd, word, wordLen) != wordLen) {
             fprintf(stderr, "Failed to read the complete word\n");
-            continue;
+            exit(EXIT_FAILURE);
         }
         word[wordLen] = '\0';
 
@@ -202,7 +187,7 @@ void readFromPipe(int fd, Vector words, double builderTimes[], int *builderIndex
         int count;
         if (safeRead(fd, &count, sizeof(int)) != sizeof(int)) {
             fprintf(stderr, "Failed to read the complete count\n");
-            continue;
+            exit(EXIT_FAILURE);
         }
 
         // Add word to vector
@@ -307,7 +292,6 @@ int main(int argc, char *argv[]) {
     printf("Number of SIGUSR2 signals received: %d\n", usr2_count);
 
     // Free memory
-    free(startDescriptors);
-    freeVector(words);
+    freeVector(words, freeWord);
     return 0;
 }

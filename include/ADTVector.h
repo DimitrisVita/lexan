@@ -40,4 +40,4 @@ void *findVectorData(Vector vector, void *data, bool (*compare)(void *, void *))
 void sortVector(Vector vector, int (*compare)(const void *, const void *));
 
 // Free the vector
-void freeVector(Vector vector);
+void freeVector(Vector vector, void (*freeData)(void *));

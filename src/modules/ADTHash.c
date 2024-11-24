@@ -17,6 +17,7 @@ Hashtable createHashtable(int size) {
     hashtable->array = (HashNode *)malloc(hashtable->size * sizeof(HashNode));
     if (hashtable->array == NULL) {
         fprintf(stderr, "Could not allocate memory for hashtable array.\n");
+        free(hashtable); // Free hashtable if array allocation fails
         exit(1);
     }
 
@@ -49,7 +50,7 @@ void addHashNode(Hashtable hashtable, char *key, void *value) {
     newNode->key = strdup(key);
     if (newNode->key == NULL) {
         fprintf(stderr, "Could not allocate memory for key.\n");
-        free(newNode);
+        free(newNode); // Free newNode if key allocation fails
         return;
     }
 

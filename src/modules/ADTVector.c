@@ -98,7 +98,10 @@ void sortVector(Vector vector, int (*compare)(const void *, const void *)) {
 }
 
 // Free the vector
-void freeVector(Vector vector) {
+void freeVector(Vector vector, void (*freeData)(void *)) {
+    for (int i = 0; i < vector->count; i++) {
+        freeData(vector->array[i].data);
+    }
     free(vector->array);
     free(vector);
 }

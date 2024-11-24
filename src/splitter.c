@@ -4,10 +4,53 @@
 // Hash function for sending words to the correct builder process
 int hash(char *word, int numBuilders) {
     int sum = 0;
-    for (int i = 0; word[i] != '\0'; i++) {
+    for (int i = 0; word[i] != '\0'; i++)
         sum += word[i];
-    }
     return sum % numBuilders;
+}
+
+// Read the exclusion list file and add each line to the set
+void readExclusionList(int exclusionFd, Set exclusionSet) {
+    char c;
+    char line[128];
+    int i = 0;
+    while (read(exclusionFd, &c, 1) > 0) {
+        if (c == '\n') {
+            line[i] = '\0';
+            addElement(exclusionSet, line);
+            i = 0;
+        } else
+            line[i++] = c;
+    }
+}
+
+// Send a word to the correct builder process
+void sendWordToBuilder(char *word, int *pipes, int numOfBuilders) {
+    int builderIndex = hash(word, numOfBuilders);   // Get the builder index
+    int wordLen = strlen(word);
+    char message[132];
+    memcpy(message, &wordLen, sizeof(int));
+    memcpy(message + sizeof(int), word, wordLen);
+    write(pipes[builderIndex], message, sizeof(int) + wordLen);
+}
+
+// Process the text file and send each word to the correct builder process
+void processTextFile(int textFd, Set exclusionSet, int *pipes, int numOfBuilders, int endDesc) {
+    char c;
+    char word[128];
+    int wordIndex = 0;
+    while (read(textFd, &c, 1) > 0) {
+        if (isalpha(c)) // If character is a letter, add it to the word
+            word[wordIndex++] = tolower(c); // Convert to lowercase
+        else if (wordIndex > 0) {
+            word[wordIndex] = '\0';
+            if (!containsElement(exclusionSet, word))
+                sendWordToBuilder(word, pipes, numOfBuilders);
+            wordIndex = 0;
+        }
+        if (endDesc != -1 && lseek(textFd, 0, SEEK_CUR) > endDesc)
+            break;
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -16,30 +59,25 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    char *textFile = argv[1];
-    char *exclusionList = argv[2];
-    int startDesc = atoi(argv[3]);
-    int endDesc = atoi(argv[4]);
-    int numOfBuilders = atoi(argv[5]);
-    char *pipeDescriptors = argv[6];
+    char *textFile = argv[1], *exclusionList = argv[2], *pipeDescriptors = argv[6];
+    int startDesc = atoi(argv[3]), endDesc = atoi(argv[4]), numOfBuilders = atoi(argv[5]);
 
     if (startDesc < 0 || endDesc < -1) {
         fprintf(stderr, "Usage: %s textFile exclusionList startDesc endDesc numOfBuilders pipeDescriptors\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    // put pipe descriptors into an array
+    // Put pipe descriptors in an array
     char *pipeDescriptorsCopy = strdup(pipeDescriptors);
     char *pipeDescriptor;
     int pipes[numOfBuilders];
-    int i = 0;
-    while ((pipeDescriptor = strsep(&pipeDescriptorsCopy, ",")) != NULL) {
-        pipes[i++] = atoi(pipeDescriptor);
-    }
+    int index = 0;
 
-    //////////////////////////
-    ////// EXLUSION LIST /////
-    //////////////////////////
+    // Split the pipe descriptors by comma
+    while ((pipeDescriptor = strsep(&pipeDescriptorsCopy, ",")) != NULL) {
+        pipes[index++] = atoi(pipeDescriptor);
+    }
+    free(pipeDescriptorsCopy);
 
     // Open exclusion list file using file descriptor
     char exclusionPath[128];
@@ -54,25 +92,11 @@ int main(int argc, char *argv[]) {
     Set exclusionSet = createSet(1000);
 
     // Read the exclusion list file and add each line to the set
-    char c;
-    char line[128];
-    i = 0;
-    while (read(exclusionFd, &c, 1) > 0) {
-        if (c == '\n') {
-            line[i] = '\0';
-            addElement(exclusionSet, line);
-            i = 0;
-        } else
-            line[i++] = c;
-    }
-
-    //////////////////////////
-    ////// TEXT FILE /////////
-    //////////////////////////
+    readExclusionList(exclusionFd, exclusionSet);
 
     // Open text file using file descriptor
     char path[128];
-    sprintf(path, "./%s", textFile); // Ensure the path is correct
+    sprintf(path, "./%s", textFile);
     int textFd = open(path, O_RDONLY);
     if (textFd == -1) {
         perror("open");
@@ -82,33 +106,12 @@ int main(int argc, char *argv[]) {
     // Move file descriptor to start line using file descriptor startLine
     lseek(textFd, startDesc, SEEK_SET);
 
-    // Read every word from the text file, check if it is in the exclusion list, and send it to a specific builder process
-    char word[128];
-    int wordIndex = 0;
-    while (read(textFd, &c, 1) > 0) {
-        if (isalpha(c)) {
-            word[wordIndex++] = tolower(c);
-        } else if (wordIndex > 0) {
-            word[wordIndex] = '\0';
-            if (!containsElement(exclusionSet, word)) {
-                int builderIndex = hash(word, numOfBuilders);
-                int wordLen = wordIndex;
-                char message[132]; // 4 bytes for wordLen + 128 bytes for word
-                memcpy(message, &wordLen, sizeof(int));
-                memcpy(message + sizeof(int), word, wordLen);                
-                write(pipes[builderIndex], message, sizeof(int) + wordLen);
-            }
-            wordIndex = 0;
-        }
-        if (endDesc != -1 && lseek(textFd, 0, SEEK_CUR) > endDesc) {
-            break;
-        }
-    }
+    // Process the text file
+    processTextFile(textFd, exclusionSet, pipes, numOfBuilders, endDesc);
 
-    // close pipe descriptors
-    for (int i = 0; i < numOfBuilders; i++) {
+    // Close pipe descriptors
+    for (int i = 0; i < numOfBuilders; i++)
         close(pipes[i]);
-    }
 
     // Free the exclusion set
     freeSet(exclusionSet);
@@ -117,7 +120,7 @@ int main(int argc, char *argv[]) {
     close(textFd);
     close(exclusionFd);
 
-    // Αποστολή σήματος USR1 στον root
+    // Send USR1 signal to the parent process
     kill(getppid(), SIGUSR1);
 
     return 0;

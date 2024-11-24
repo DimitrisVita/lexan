@@ -1,5 +1,12 @@
 #include "common.h"
 
+// Function to read a word from stdin
+void freeWord(void *data) {
+    Word *word = (Word *)data;
+    free(word->word);
+    free(word);
+}
+
 // Function to compare words
 int compareWords(const void *a, const void *b) {
     Word *wordA = (Word *)a;
@@ -26,10 +33,4 @@ ssize_t safeRead(int fd, void *buffer, size_t count) {
     }
 
     return totalBytesRead;
-}
-
-void sendTimeToRoot(double time_spent) {
-    char timeLabel[256];
-    sprintf(timeLabel, "TIME: %lf\n", time_spent);
-    write(STDOUT_FILENO, timeLabel, strlen(timeLabel));
 }

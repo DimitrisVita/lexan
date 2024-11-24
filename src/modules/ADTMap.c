@@ -4,7 +4,16 @@
 
 Map createMap(int size) {
     Map map = (Map) malloc(sizeof(struct map));
+    if (map == NULL) {
+        // Handle memory allocation failure
+        return NULL;
+    }
     map->hashtable = createHashtable(size);
+    if (map->hashtable == NULL) {
+        // Handle hashtable creation failure
+        free(map);
+        return NULL;
+    }
     return map;
 }
 
@@ -33,6 +42,8 @@ MapNode getNextMapNode(Map map, MapNode node) {
 }
 
 void freeMap(Map map) {
-    freeHashtable(map->hashtable);
-    free(map);
+    if (map != NULL) {
+        freeHashtable(map->hashtable);
+        free(map);
+    }
 }
