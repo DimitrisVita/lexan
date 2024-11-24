@@ -1,41 +1,45 @@
 CC = gcc
 CFLAGS = -Iinclude
 LDFLAGS = -pthread
+OBJDIR = obj
 
-all: root splitter builder
+all: $(OBJDIR) lexan $(OBJDIR)/splitter $(OBJDIR)/builder
 
-root: src/root.o src/common.o src/modules/ADTHash.o src/modules/ADTSet.o src/modules/ADTMap.o src/modules/ADTVector.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -o root src/root.o src/common.o src/modules/ADTHash.o src/modules/ADTSet.o src/modules/ADTMap.o src/modules/ADTVector.o
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-splitter: src/splitter.o src/common.o src/modules/ADTSet.o src/modules/ADTHash.o src/modules/ADTMap.o src/modules/ADTVector.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -o splitter src/splitter.o src/common.o src/modules/ADTSet.o src/modules/ADTHash.o src/modules/ADTMap.o src/modules/ADTVector.o
+lexan: $(OBJDIR)/lexan.o $(OBJDIR)/common.o $(OBJDIR)/ADTHash.o $(OBJDIR)/ADTSet.o $(OBJDIR)/ADTMap.o $(OBJDIR)/ADTVector.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o lexan $(OBJDIR)/lexan.o $(OBJDIR)/common.o $(OBJDIR)/ADTHash.o $(OBJDIR)/ADTSet.o $(OBJDIR)/ADTMap.o $(OBJDIR)/ADTVector.o
 
-builder: src/builder.o src/common.o src/modules/ADTHash.o src/modules/ADTMap.o src/modules/ADTVector.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -o builder src/builder.o src/common.o src/modules/ADTHash.o src/modules/ADTMap.o src/modules/ADTVector.o
+$(OBJDIR)/splitter: $(OBJDIR)/splitter.o $(OBJDIR)/common.o $(OBJDIR)/ADTSet.o $(OBJDIR)/ADTHash.o $(OBJDIR)/ADTMap.o $(OBJDIR)/ADTVector.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(OBJDIR)/splitter $(OBJDIR)/splitter.o $(OBJDIR)/common.o $(OBJDIR)/ADTSet.o $(OBJDIR)/ADTHash.o $(OBJDIR)/ADTMap.o $(OBJDIR)/ADTVector.o
 
-src/root.o: src/root.c
-	$(CC) $(CFLAGS) -c src/root.c -o src/root.o
+$(OBJDIR)/builder: $(OBJDIR)/builder.o $(OBJDIR)/common.o $(OBJDIR)/ADTHash.o $(OBJDIR)/ADTMap.o $(OBJDIR)/ADTVector.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(OBJDIR)/builder $(OBJDIR)/builder.o $(OBJDIR)/common.o $(OBJDIR)/ADTHash.o $(OBJDIR)/ADTMap.o $(OBJDIR)/ADTVector.o
 
-src/splitter.o: src/splitter.c
-	$(CC) $(CFLAGS) -c src/splitter.c -o src/splitter.o
+$(OBJDIR)/lexan.o: src/lexan.c
+	$(CC) $(CFLAGS) -c src/lexan.c -o $(OBJDIR)/lexan.o
 
-src/builder.o: src/builder.c
-	$(CC) $(CFLAGS) -c src/builder.c -o src/builder.o
+$(OBJDIR)/splitter.o: src/splitter.c
+	$(CC) $(CFLAGS) -c src/splitter.c -o $(OBJDIR)/splitter.o
 
-src/common.o: src/common.c
-	$(CC) $(CFLAGS) -c src/common.c -o src/common.o
+$(OBJDIR)/builder.o: src/builder.c
+	$(CC) $(CFLAGS) -c src/builder.c -o $(OBJDIR)/builder.o
 
-src/modules/ADTHash.o: src/modules/ADTHash.c
-	$(CC) $(CFLAGS) -c src/modules/ADTHash.c -o src/modules/ADTHash.o
+$(OBJDIR)/common.o: src/common.c
+	$(CC) $(CFLAGS) -c src/common.c -o $(OBJDIR)/common.o
 
-src/modules/ADTSet.o: src/modules/ADTSet.c
-	$(CC) $(CFLAGS) -c src/modules/ADTSet.c -o src/modules/ADTSet.o
+$(OBJDIR)/ADTHash.o: src/modules/ADTHash.c
+	$(CC) $(CFLAGS) -c src/modules/ADTHash.c -o $(OBJDIR)/ADTHash.o
 
-src/modules/ADTMap.o: src/modules/ADTMap.c
-	$(CC) $(CFLAGS) -c src/modules/ADTMap.c -o src/modules/ADTMap.o
+$(OBJDIR)/ADTSet.o: src/modules/ADTSet.c
+	$(CC) $(CFLAGS) -c src/modules/ADTSet.c -o $(OBJDIR)/ADTSet.o
 
-src/modules/ADTVector.o: src/modules/ADTVector.c
-	$(CC) $(CFLAGS) -c src/modules/ADTVector.c -o src/modules/ADTVector.o
+$(OBJDIR)/ADTMap.o: src/modules/ADTMap.c
+	$(CC) $(CFLAGS) -c src/modules/ADTMap.c -o $(OBJDIR)/ADTMap.o
+
+$(OBJDIR)/ADTVector.o: src/modules/ADTVector.c
+	$(CC) $(CFLAGS) -c src/modules/ADTVector.c -o $(OBJDIR)/ADTVector.o
 
 clean:
-	rm -f root splitter builder src/*.o src/modules/*.o
+	rm -rf lexan $(OBJDIR)
