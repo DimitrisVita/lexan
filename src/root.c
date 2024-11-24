@@ -2,8 +2,8 @@
 #include "ADTVector.h"
 
 // Global variables to count signals received
-volatile sig_atomic_t usr1_count = 0;
-volatile sig_atomic_t usr2_count = 0;
+int usr1_count = 0;
+int usr2_count = 0;
 
 // Signal handlers
 void splitterDone(int sig) { usr1_count++; }
