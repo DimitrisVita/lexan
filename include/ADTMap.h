@@ -1,4 +1,6 @@
+#pragma once
 #include "common.h"
+
 #include "ADTHash.h"
 
 // Implementations of ADTMap using ADTHash

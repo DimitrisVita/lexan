@@ -2,28 +2,24 @@
 
 // Create a new hashtable
 Hashtable createHashtable(int size) {
-    // Allocate memory for the hashtable
     Hashtable hashtable = (Hashtable)malloc(sizeof(struct hash));
     if (hashtable == NULL) {
         fprintf(stderr, "Could not allocate memory for hashtable.\n");
         exit(1);
     }
 
-    // Initialize the hashtable
     hashtable->size = size;
     hashtable->count = 0;
 
-    // Allocate memory for the array
     hashtable->array = (HashNode *)malloc(hashtable->size * sizeof(HashNode));
     if (hashtable->array == NULL) {
         fprintf(stderr, "Could not allocate memory for hashtable array.\n");
-        free(hashtable); // Free hashtable if array allocation fails
+        free(hashtable);
         exit(1);
     }
 
-    // Initialize the array
     for (int i = 0; i < hashtable->size; i++) {
-        hashtable->array[i] = NULL;    // set all pointers to NULL
+        hashtable->array[i] = NULL; // Initialize all pointers to NULL
     }
 
     return hashtable;
@@ -39,25 +35,20 @@ unsigned int hashFunction(char *key, int size) {
 
 // Add a new node to the hashtable
 void addHashNode(Hashtable hashtable, char *key, void *value) {
-    // Allocate memory for the new node
     HashNode newNode = (HashNode)malloc(sizeof(struct hash_node));
     if (newNode == NULL) {
         fprintf(stderr, "Could not allocate memory for new node.\n");
         return;
     }
 
-    // Duplicate the key to ensure it is properly managed
     newNode->key = strdup(key);
     if (newNode->key == NULL) {
         fprintf(stderr, "Could not allocate memory for key.\n");
-        free(newNode); // Free newNode if key allocation fails
+        free(newNode);
         return;
     }
 
-    // Initialize the new node
     newNode->value = value;
-
-    // Get the hash value of the key
     unsigned int hashValue = hashFunction(key, hashtable->size);
 
     // Insert the new node at the beginning of the linked list
@@ -71,7 +62,8 @@ void deleteHashNode(Hashtable hashtable, char *key) {
     unsigned int hashValue = hashFunction(key, hashtable->size);
     HashNode node = hashtable->array[hashValue];
     HashNode prev = NULL;
-    while (node != NULL) {  // iterate over the linked list
+
+    while (node != NULL) {
         if (strcmp(node->key, key) == 0) {
             if (prev == NULL)
                 hashtable->array[hashValue] = node->next;
@@ -82,8 +74,8 @@ void deleteHashNode(Hashtable hashtable, char *key) {
             hashtable->count--;
             return;
         }
-        prev = node;    // keep track of the previous node
-        node = node->next;  // move to the next node
+        prev = node;
+        node = node->next;
     }
 }
 
@@ -91,12 +83,13 @@ void deleteHashNode(Hashtable hashtable, char *key) {
 void *getHashNode(Hashtable hashtable, char *key) {
     unsigned int hashValue = hashFunction(key, hashtable->size);
     HashNode node = hashtable->array[hashValue];
-    while (node != NULL) {  // iterate over the linked list
-        if (strcmp(node->key, key) == 0)    // key found
+
+    while (node != NULL) {
+        if (strcmp(node->key, key) == 0)
             return node->value;
         node = node->next;
     }
-    return NULL;    // key not found
+    return NULL;
 }
 
 // Get the size of the hashtable
@@ -104,7 +97,7 @@ int getHashtableSize(Hashtable hashtable) {
     return hashtable->count;
 }
 
-// Get first not null node
+// Get first non-null node
 HashNode getFirstNode(Hashtable hashtable) {
     for (int i = 0; i < hashtable->size; i++) {
         if (hashtable->array[i] != NULL)
@@ -113,7 +106,7 @@ HashNode getFirstNode(Hashtable hashtable) {
     return NULL;
 }
 
-// Get next not null node
+// Get next non-null node
 HashNode getNextNode(Hashtable hashtable, HashNode node) {
     if (node->next != NULL)
         return node->next;
@@ -127,12 +120,12 @@ HashNode getNextNode(Hashtable hashtable, HashNode node) {
 // Free the hashtable
 void freeHashtable(Hashtable hashtable) {
     for (int i = 0; i < hashtable->size; i++) {
-        HashNode node = hashtable->array[i];    // get the first node of the linked list
+        HashNode node = hashtable->array[i];
         while (node != NULL) {
-            HashNode nextEntry = node->next;    // get the next node before freeing the current node
+            HashNode nextEntry = node->next;
             free(node->key);
             free(node);
-            node = nextEntry;   // move to the next node
+            node = nextEntry;
         }
     }
     free(hashtable->array);

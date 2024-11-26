@@ -3,7 +3,7 @@
 // Implementations of ADTSet using ADTHash
 
 struct set {
-    Hashtable hashtable;
+    Hashtable hashtable;  // Underlying hashtable to store set elements
 };
 
 // Create a new set
@@ -20,7 +20,7 @@ Set createSet(int size) {
 
 // Add an element to the set
 void addElement(Set set, char *element) {
-    addHashNode(set->hashtable, element, element);
+    addHashNode(set->hashtable, element, element);  // Use element as both key and value
 }
 
 // Remove an element from the set

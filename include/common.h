@@ -1,5 +1,4 @@
-#ifndef COMMON_H
-#define COMMON_H
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +23,3 @@ void freeWord(void *word);
 int compareWords(const void *a, const void *b);
 
 ssize_t safeRead(int fd, void *buffer, size_t count);
-
-
-#endif // COMMON_H
