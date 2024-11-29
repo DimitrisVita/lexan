@@ -66,6 +66,18 @@ void processTextFile(int textFd, Set exclusionSet, int *pipes, int numOfBuilders
     }
 }
 
+// Count exclusion file lines
+int countLinesInFile(int exclusionFd) {
+    int totalLines = 0;
+    char buffer[4096];
+    ssize_t bytesRead;
+    while ((bytesRead = safeRead(exclusionFd, buffer, sizeof(buffer))) > 0)
+        for (ssize_t i = 0; i < bytesRead; i++)
+            if (buffer[i] == '\n') totalLines++;
+    lseek(exclusionFd, 0, SEEK_SET);    // Reset file descriptor
+    return totalLines;
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 7) {
         fprintf(stderr, "Usage: %s textFile exclusionList startDesc endDesc numOfBuilders pipeDescriptors\n", argv[0]);
@@ -101,8 +113,11 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    // Determine the number of lines in the exclusion list
+    int setSize = countLinesInFile(exclusionFd);
+
     // Create a set to store the exclusion list
-    Set exclusionSet = createSet(1000);
+    Set exclusionSet = createSet(setSize);
 
     // Read the exclusion list file and add each line to the set
     readExclusionList(exclusionFd, exclusionSet);

@@ -135,7 +135,10 @@ void createSplitterProcesses(int numOfSplitter, int numOfBuilders, int startDesc
 }
 
 // Function to create builder processes
-void createBuilderProcesses(int numOfBuilders, int SBpipes[numOfBuilders][2], int BRpipes[numOfBuilders][2]) {
+void createBuilderProcesses(int numOfBuilders, int SBpipes[numOfBuilders][2], int BRpipes[numOfBuilders][2], int builderMapSize) {
+    char builderMapSizeStr[10];
+    sprintf(builderMapSizeStr, "%d", builderMapSize);
+
     for (int i = 0; i < numOfBuilders; i++) {
         pid_t pid = fork();
         if (pid < 0) {  // Error
@@ -159,7 +162,7 @@ void createBuilderProcesses(int numOfBuilders, int SBpipes[numOfBuilders][2], in
             close(SBpipes[i][0]);
 
             // Execute builder
-            execl("./obj/builder", "builder", (char *)NULL);
+            execl("./obj/builder", "builder", builderMapSizeStr, (char *)NULL);
             perror("execl");
             exit(EXIT_FAILURE);
         } else {
@@ -234,6 +237,61 @@ void writeToFile(Vector words, char *outputFile) {
     close(fd);
 }
 
+// Function to calculate the optimal size for the vector
+int calculateOptimalSize(char *textFile) {
+    int fd = open(textFile, O_RDONLY);
+    if (fd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    // Get the file size
+    int fileSize = lseek(fd, 0, SEEK_END);
+    if (fileSize == -1) {
+        perror("lseek");
+        close(fd);
+        exit(EXIT_FAILURE);
+    }
+
+    // Count lines of text file using file descriptor
+    int lines = 0;
+    char buffer[4096];
+    lseek(fd, 0, SEEK_SET); // Reset file descriptor to start of file
+    while (1) {
+        ssize_t bytesRead = safeRead(fd, buffer, sizeof(buffer));
+        if (bytesRead <= 0) break;
+        for (ssize_t i = 0; i < bytesRead; i++) {
+            if (buffer[i] == '\n') lines++;
+        }
+    }
+    close(fd);
+
+    // Calculate optimal size (e.g., file size / number of lines)
+    return fileSize / (lines > 0 ? lines : 1);
+}
+
+int calculateMapSize(char *textFile) {
+    int fd = open(textFile, O_RDONLY);
+    if (fd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    int wordCount = 0;
+    char buffer[4096];
+    ssize_t bytesRead;
+    while ((bytesRead = safeRead(fd, buffer, sizeof(buffer))) > 0) {
+        for (ssize_t i = 0; i < bytesRead; i++) {
+            if (isalpha(buffer[i])) {
+                wordCount++;
+                while (i < bytesRead && isalpha(buffer[i])) i++;
+            }
+        }
+    }
+    close(fd);
+    return wordCount;
+}
+
 int main(int argc, char *argv[]) {
     // Start timer for root process
     struct tms tb1, tb2;
@@ -257,17 +315,23 @@ int main(int argc, char *argv[]) {
     // Calculate startDescriptor for each splitter
     int *startDescriptors = saveStartDescriptors(numOfSplitter, textFile);    
 
+    // Calculate the size needed for the map
+    int builderMapSize = calculateMapSize(textFile);
+
     // Create splitter and builder processes
     createSplitterProcesses(numOfSplitter, numOfBuilders, startDescriptors, textFile, exclusionList, SBpipes);
-    createBuilderProcesses(numOfBuilders, SBpipes, BRpipes);    
+    createBuilderProcesses(numOfBuilders, SBpipes, BRpipes, builderMapSize);    
 
     // Wait for all children to finish
     int status;
     for (int i = 0; i < numOfSplitter + numOfBuilders; i++)
         wait(&status);
 
+    // Calculate optimal size for vector
+    int optimalSize = calculateOptimalSize(textFile);
+
     // Create vector to store words structs
-    Vector words = createVector(1000);
+    Vector words = createVector(optimalSize);
 
     // Array to store time spent by each builder
     double builderTimes[numOfBuilders];

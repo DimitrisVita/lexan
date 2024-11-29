@@ -50,6 +50,17 @@ void sendTime(int fd, double time) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s mapSize\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    int mapSize = atoi(argv[1]);
+    if (mapSize <= 0) {
+        fprintf(stderr, "Invalid map size: %d\n", mapSize);
+        exit(EXIT_FAILURE);
+    }
+
     // Start timing
     struct tms tb1, tb2;
     double t1, t2, real_time;
@@ -57,12 +68,11 @@ int main(int argc, char *argv[]) {
     t1 = (double) times(&tb1);
 
     // Read words from stdin and count their occurrences
-    Map map = createMap(1000);
+    Map map = createMap(mapSize);
     char word[128];
     int wordLen;
-    while (readWord(STDIN_FILENO, word, &wordLen)) {
+    while (readWord(STDIN_FILENO, word, &wordLen))
         updateWordCount(map, word);
-    }
 
     // Send words and their counts to root
     for (MapNode node = getFirstMapNode(map); node != NULL; node = getNextMapNode(map, node)) {
