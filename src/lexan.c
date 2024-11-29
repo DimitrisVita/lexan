@@ -5,6 +5,9 @@
 int usr1_count = 0;
 int usr2_count = 0;
 
+// Global variable to count total number of interesting words
+int totalInterestingWords = 0;
+
 // Signal handlers
 void splitterDone(int sig) { usr1_count++; }
 void builderDone(int sig) { usr2_count++; }
@@ -195,6 +198,9 @@ void readFromPipe(int fd, Vector words, double builderTimes[], int *builderIndex
         wordStruct->word = strdup(word);
         wordStruct->count = count;
         addVectorNode(words, wordStruct);
+
+        // Update total number of interesting words
+        totalInterestingWords += count;
     }
 }
 
@@ -280,11 +286,12 @@ int main(int argc, char *argv[]) {
     printf("ROOT TIME:\n");
     printf("%lf sec\n", real_time);
 
-    // Print top popular words
+    // Print top popular words with their frequency
     printf("TOP %d POPULAR WORDS:\n", topPopular);
     for (int i = 0; i < topPopular && i < getVectorSize(words); i++) {
         Word *word = (Word *)getVectorData(words, i);
-        printf("%s: %d\n", word->word, word->count);
+        double frequency = (double)word->count / totalInterestingWords;
+        printf("%s: %d (f=%.6lf)\n", word->word, word->count, frequency);
     }
 
     // Print the number of signals received
