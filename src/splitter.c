@@ -11,16 +11,21 @@ int hash(char *word, int numBuilders) {
 
 // Read the exclusion list file and add each line to the set
 void readExclusionList(int exclusionFd, Set exclusionSet) {
-    char c;
+    char buffer[4096];
+    int bytesRead;
     char line[128];
     int i = 0;
-    while (read(exclusionFd, &c, 1) > 0) {
-        if (c == '\n') {
-            line[i] = '\0';
-            addElement(exclusionSet, line);
-            i = 0;
-        } else
-            line[i++] = c;
+
+    while ((bytesRead = safeRead(exclusionFd, buffer, sizeof(buffer))) > 0) {
+        for (int j = 0; j < bytesRead; j++) {
+            if (buffer[j] == '\n') {
+                line[i] = '\0';
+                addElement(exclusionSet, line);
+                i = 0;
+            } else {
+                line[i++] = buffer[j];
+            }
+        }
     }
 }
 
@@ -36,20 +41,28 @@ void sendWordToBuilder(char *word, int *pipes, int numOfBuilders) {
 
 // Process the text file and send each word to the correct builder process
 void processTextFile(int textFd, Set exclusionSet, int *pipes, int numOfBuilders, int endDesc) {
-    char c;
-    char word[128];
-    int wordIndex = 0;
-    while (read(textFd, &c, 1) > 0) {
-        if (isalpha(c)) // If character is a letter, add it to the word
-            word[wordIndex++] = tolower(c); // Convert to lowercase
-        else if (wordIndex > 0) {
-            word[wordIndex] = '\0';
-            if (!containsElement(exclusionSet, word))
-                sendWordToBuilder(word, pipes, numOfBuilders);
-            wordIndex = 0;
+    char buffer[4096], word[128];
+    int wordIndex = 0, bytesRead, currentPos = lseek(textFd, 0, SEEK_CUR);
+
+    while ((bytesRead = safeRead(textFd, buffer, sizeof(buffer))) > 0) {
+        for (int i = 0; i < bytesRead; i++, currentPos++) {
+            char c = buffer[i];
+            if (isalpha(c)) {
+                word[wordIndex++] = tolower(c);
+            } else if (wordIndex > 0) {
+                word[wordIndex] = '\0';
+                if (!containsElement(exclusionSet, word))
+                    sendWordToBuilder(word, pipes, numOfBuilders);
+                wordIndex = 0;
+            }
+            if (endDesc != -1 && currentPos >= endDesc) break;
         }
-        if (endDesc != -1 && lseek(textFd, 0, SEEK_CUR) > endDesc)
-            break;
+        if (endDesc != -1 && currentPos >= endDesc) break;
+    }
+    if (wordIndex > 0) {
+        word[wordIndex] = '\0';
+        if (!containsElement(exclusionSet, word))
+            sendWordToBuilder(word, pipes, numOfBuilders);
     }
 }
 

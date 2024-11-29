@@ -45,10 +45,15 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
 
     // Count lines of text file using file descriptor
     int lines = 0;
-    char c;
-    while (read(fd, &c, 1) > 0)
-        if (c == '\n')
-            lines++;
+    char buffer[4096];
+    ssize_t bytesRead;
+    while ((bytesRead = safeRead(fd, buffer, sizeof(buffer))) > 0) {
+        for (ssize_t i = 0; i < bytesRead; i++) {
+            if (buffer[i] == '\n') {
+                lines++;
+            }
+        }
+    }
 
     // Lines per splitter
     int linesPerSplitter = lines / numOfSplitter;
@@ -63,9 +68,16 @@ int *saveStartDescriptors(int numOfSplitter, char *textFile) {
     for (int i = 0; i < numOfSplitter; i++) {
         startDescriptors[i] = readCount;
         for (int j = 0; j < linesPerSplitter + (i < remainingLines ? 1 : 0); j++) {
-            while (read(fd, &c, 1) > 0) {
-                readCount++;
-                if (c == '\n') break;
+            while ((bytesRead = safeRead(fd, buffer, sizeof(buffer))) > 0) {
+                for (ssize_t k = 0; k < bytesRead; k++) {
+                    readCount++;
+                    if (buffer[k] == '\n') {
+                        break;
+                    }
+                }
+                if (buffer[bytesRead - 1] == '\n') {
+                    break;
+                }
             }
         }
     }
