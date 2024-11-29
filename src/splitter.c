@@ -49,17 +49,17 @@ void processTextFile(int textFd, Set exclusionSet, int *pipes, int numOfBuilders
             char c = buffer[i];
             if (isalpha(c)) {
                 word[wordIndex++] = tolower(c);
-            } else if (wordIndex > 0) {
+            } else if (wordIndex > 0) { // Send the word to the correct builder process
                 word[wordIndex] = '\0';
-                if (!containsElement(exclusionSet, word))
+                if (!containsElement(exclusionSet, word))   // Check if the word is in the exclusion list
                     sendWordToBuilder(word, pipes, numOfBuilders);
                 wordIndex = 0;
             }
-            if (endDesc != -1 && currentPos >= endDesc) break;
+            if (endDesc != -1 && currentPos >= endDesc) break;  // Stop reading if endDesc is reached
         }
-        if (endDesc != -1 && currentPos >= endDesc) break;
+        if (endDesc != -1 && currentPos >= endDesc) break;  // Stop reading if endDesc is reached
     }
-    if (wordIndex > 0) {
+    if (wordIndex > 0) {    // Send the last word to the correct builder process
         word[wordIndex] = '\0';
         if (!containsElement(exclusionSet, word))
             sendWordToBuilder(word, pipes, numOfBuilders);
